@@ -9,6 +9,11 @@ app_license = "MIT"
 
 required_apps = ["frappe", "erpnext"]
 
+# ── Migrate hooks ───────────────────────────────────────────────────────────
+before_migrate = [
+    "baby_care.baby_care_management.utils.install.before_migrate",
+]
+
 # ── Fixtures ────────────────────────────────────────────────────────────────
 fixtures = [
     {
@@ -22,6 +27,10 @@ fixtures = [
     {"dt": "Meal Category"},
     {"dt": "Service Category"},
     {"dt": "Attendance Status"},
+    {
+        "dt": "Workspace",
+        "filters": [["name", "=", "Baby Care Management"]],
+    },
 ]
 
 # ── DocType events ──────────────────────────────────────────────────────────

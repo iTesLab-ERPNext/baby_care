@@ -12,12 +12,12 @@
   "content": "[{\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Child\",\"col\":3}},{\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Child Attendance\",\"col\":3}},{\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Child Subscription\",\"col\":3}},{\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Medical Record\",\"col\":3}},{\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Sales Invoice\",\"col\":3}},{\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Nursery Settings\",\"col\":3}},{\"type\":\"card\",\"data\":{\"card_name\":\"Parents & Children\",\"col\":4}},{\"type\":\"card\",\"data\":{\"card_name\":\"Subscriptions & Billing\",\"col\":4}},{\"type\":\"card\",\"data\":{\"card_name\":\"Health & Documents\",\"col\":4}},{\"type\":\"card\",\"data\":{\"card_name\":\"Services & Meals\",\"col\":4}},{\"type\":\"card\",\"data\":{\"card_name\":\"Staff & Attendance\",\"col\":4}},{\"type\":\"card\",\"data\":{\"card_name\":\"Reports\",\"col\":4}},{\"type\":\"card\",\"data\":{\"card_name\":\"Configuration\",\"col\":4}}]",
   "charts": [],
   "shortcuts": [
-   {"label": "Child",              "link_to": "Child",              "type": "DocType", "name": "Child"},
-   {"label": "Child Attendance",   "link_to": "Child Attendance",   "type": "DocType", "name": "Child Attendance"},
-   {"label": "Child Subscription", "link_to": "Child Subscription", "type": "DocType", "name": "Child Subscription"},
-   {"label": "Medical Record",     "link_to": "Medical Record",     "type": "DocType", "name": "Medical Record"},
-   {"label": "Sales Invoice",      "link_to": "Sales Invoice",      "type": "DocType", "name": "Sales Invoice"},
-   {"label": "Nursery Settings",   "link_to": "Nursery Settings",   "type": "DocType", "name": "Nursery Settings"}
+   {"label": "Child",              "link_to": "Child",              "type": "DocType"},
+   {"label": "Child Attendance",   "link_to": "Child Attendance",   "type": "DocType"},
+   {"label": "Child Subscription", "link_to": "Child Subscription", "type": "DocType"},
+   {"label": "Medical Record",     "link_to": "Medical Record",     "type": "DocType"},
+   {"label": "Sales Invoice",      "link_to": "Sales Invoice",      "type": "DocType"},
+   {"label": "Nursery Settings",   "link_to": "Nursery Settings",   "type": "DocType"}
   ],
   "links": [
    {"type": "Card Break", "label": "Parents & Children",      "hidden": 0},
