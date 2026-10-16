@@ -1,0 +1,15 @@
+{
+ "actions":[],"creation":"2024-01-01 00:00:00.000000","doctype":"DocType",
+ "engine":"InnoDB","istable":1,
+ "field_order":["service","is_included","additional_price","notes"],
+ "fields":[
+  {"fieldname":"service","fieldtype":"Link","label":"Service","options":"Nursery Service","reqd":1,"in_list_view":1},
+  {"fieldname":"is_included","fieldtype":"Check","label":"Included in Base Price","default":"1","in_list_view":1},
+  {"fieldname":"additional_price","fieldtype":"Currency","label":"Additional Price",
+   "depends_on":"eval:!doc.is_included","in_list_view":1},
+  {"fieldname":"notes","fieldtype":"Small Text","label":"Notes"}
+ ],
+ "modified":"2024-01-01 00:00:00.000000","modified_by":"Administrator",
+ "module":"Baby Care Management","name":"Subscription Plan Service","owner":"Administrator",
+ "permissions":[],"sort_field":"modified","sort_order":"DESC","track_changes":0
+}

@@ -1,0 +1,38 @@
+{
+ "actions": [],
+ "autoname": "field:status_name",
+ "creation": "2024-01-01 00:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": ["status_name", "status_type", "color", "is_active"],
+ "fields": [
+  {"fieldname": "status_name", "fieldtype": "Data", "label": "Status Name", "reqd": 1, "unique": 1},
+  {
+   "fieldname": "status_type",
+   "fieldtype": "Select",
+   "label": "Type",
+   "options": "Present\nAbsent\nLate\nLeave\nHoliday\nOther",
+   "reqd": 1
+  },
+  {
+   "fieldname": "color",
+   "fieldtype": "Select",
+   "label": "Indicator Color",
+   "options": "Green\nRed\nOrange\nBlue\nGrey"
+  },
+  {"fieldname": "is_active", "fieldtype": "Check", "label": "Is Active", "default": "1"}
+ ],
+ "modified": "2024-01-01 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Baby Care Management",
+ "name": "Attendance Status",
+ "owner": "Administrator",
+ "permissions": [
+  {"read": 1, "write": 1, "create": 1, "delete": 1, "role": "Nursery Administrator"},
+  {"read": 1, "role": "Nursery Teacher"},
+  {"read": 1, "role": "Nursery Receptionist"}
+ ],
+ "sort_field": "status_name",
+ "sort_order": "ASC",
+ "track_changes": 0
+}

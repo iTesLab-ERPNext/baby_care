@@ -1,0 +1,8 @@
+{
+ "creation":"2024-01-01 00:00:00.000000","doctype":"Report",
+ "is_standard":"Yes","modified":"2024-01-01 00:00:00.000000","modified_by":"Administrator",
+ "module":"Baby Care Management","name":"Subscription Status Report","owner":"Administrator",
+ "ref_doctype":"Child Subscription","report_name":"Subscription Status Report",
+ "report_type":"Script Report",
+ "roles":[{"role":"Nursery Administrator"},{"role":"Nursery Accountant"}]
+}

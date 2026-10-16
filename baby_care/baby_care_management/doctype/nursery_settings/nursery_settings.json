@@ -1,0 +1,184 @@
+{
+ "actions": [],
+ "creation": "2024-01-01 00:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "general_section",
+  "facility_name",
+  "facility_type",
+  "col_break_1",
+  "default_company",
+  "default_currency",
+  "billing_section",
+  "default_income_account",
+  "default_cost_center",
+  "col_break_2",
+  "default_payment_terms",
+  "invoice_due_days",
+  "allow_partial_payment",
+  "col_break_3",
+  "auto_generate_invoices",
+  "invoice_generation_day",
+  "multi_child_discount_percent",
+  "enrollment_section",
+  "require_medical_record",
+  "require_birth_certificate",
+  "require_parent_id",
+  "col_break_4",
+  "enforce_class_capacity",
+  "default_subscription_plan",
+  "notification_section",
+  "notify_subscription_expiry_days",
+  "notify_document_expiry_days",
+  "notify_overdue_after_days"
+ ],
+ "fields": [
+  {"fieldname": "general_section", "fieldtype": "Section Break", "label": "General"},
+  {"fieldname": "facility_name", "fieldtype": "Data", "label": "Facility Name", "reqd": 1},
+  {
+   "fieldname": "facility_type",
+   "fieldtype": "Select",
+   "label": "Facility Type",
+   "options": "Nursery\nKindergarten\nDaycare Center\nBaby Care Center\nOther",
+   "reqd": 1
+  },
+  {"fieldname": "col_break_1", "fieldtype": "Column Break"},
+  {
+   "fieldname": "default_company",
+   "fieldtype": "Link",
+   "label": "Default Company",
+   "options": "Company",
+   "reqd": 1
+  },
+  {"fieldname": "default_currency", "fieldtype": "Link", "label": "Default Currency", "options": "Currency"},
+  {"fieldname": "billing_section", "fieldtype": "Section Break", "label": "Billing & Accounting"},
+  {
+   "fieldname": "default_income_account",
+   "fieldtype": "Link",
+   "label": "Default Income Account",
+   "options": "Account"
+  },
+  {
+   "fieldname": "default_cost_center",
+   "fieldtype": "Link",
+   "label": "Default Cost Center",
+   "options": "Cost Center"
+  },
+  {"fieldname": "col_break_2", "fieldtype": "Column Break"},
+  {
+   "fieldname": "default_payment_terms",
+   "fieldtype": "Link",
+   "label": "Default Payment Terms",
+   "options": "Payment Terms Template"
+  },
+  {
+   "fieldname": "invoice_due_days",
+   "fieldtype": "Int",
+   "label": "Invoice Due Days",
+   "default": "15"
+  },
+  {
+   "fieldname": "allow_partial_payment",
+   "fieldtype": "Check",
+   "label": "Allow Partial Payments",
+   "default": "1"
+  },
+  {"fieldname": "col_break_3", "fieldtype": "Column Break"},
+  {
+   "fieldname": "auto_generate_invoices",
+   "fieldtype": "Check",
+   "label": "Auto-Generate Monthly Invoices",
+   "default": "1"
+  },
+  {
+   "fieldname": "invoice_generation_day",
+   "fieldtype": "Int",
+   "label": "Invoice Generation Day of Month",
+   "default": "1",
+   "description": "Day of month on which monthly invoices are auto-generated (1-28)"
+  },
+  {
+   "fieldname": "multi_child_discount_percent",
+   "fieldtype": "Float",
+   "label": "Multi-Child Discount (%)",
+   "default": "0",
+   "description": "Discount applied when a parent enrolls more than one child"
+  },
+  {"fieldname": "enrollment_section", "fieldtype": "Section Break", "label": "Enrollment Rules"},
+  {
+   "fieldname": "require_medical_record",
+   "fieldtype": "Check",
+   "label": "Require Medical Record at Enrollment",
+   "default": "1"
+  },
+  {
+   "fieldname": "require_birth_certificate",
+   "fieldtype": "Check",
+   "label": "Require Birth Certificate",
+   "default": "1"
+  },
+  {
+   "fieldname": "require_parent_id",
+   "fieldtype": "Check",
+   "label": "Require Parent ID Document",
+   "default": "1"
+  },
+  {"fieldname": "col_break_4", "fieldtype": "Column Break"},
+  {
+   "fieldname": "enforce_class_capacity",
+   "fieldtype": "Check",
+   "label": "Enforce Class Capacity Limit",
+   "default": "1"
+  },
+  {
+   "fieldname": "default_subscription_plan",
+   "fieldtype": "Link",
+   "label": "Default Subscription Plan",
+   "options": "Subscription Plan"
+  },
+  {"fieldname": "notification_section", "fieldtype": "Section Break", "label": "Notification Thresholds"},
+  {
+   "fieldname": "notify_subscription_expiry_days",
+   "fieldtype": "Int",
+   "label": "Notify Subscription Expiry (days before)",
+   "default": "14"
+  },
+  {
+   "fieldname": "notify_document_expiry_days",
+   "fieldtype": "Int",
+   "label": "Notify Document Expiry (days before)",
+   "default": "30"
+  },
+  {
+   "fieldname": "notify_overdue_after_days",
+   "fieldtype": "Int",
+   "label": "Mark Invoice Overdue After (days)",
+   "default": "7"
+  }
+ ],
+ "issingle": 1,
+ "modified": "2024-01-01 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Baby Care Management",
+ "name": "Nursery Settings",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "role": "Nursery Administrator",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "read": 1,
+   "role": "System Manager",
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "track_changes": 1
+}

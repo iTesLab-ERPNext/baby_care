@@ -1,0 +1,14 @@
+{
+ "actions":[],"creation":"2024-01-01 00:00:00.000000","doctype":"DocType",
+ "engine":"InnoDB","istable":1,
+ "field_order":["child","enrollment_status","enrolled_on"],
+ "fields":[
+  {"fieldname":"child","fieldtype":"Link","label":"Child","options":"Child","reqd":1,"in_list_view":1},
+  {"fieldname":"enrollment_status","fieldtype":"Select","label":"Status",
+   "options":"Active\nWithdrawn","default":"Active","in_list_view":1},
+  {"fieldname":"enrolled_on","fieldtype":"Date","label":"Enrolled On"}
+ ],
+ "modified":"2024-01-01 00:00:00.000000","modified_by":"Administrator",
+ "module":"Baby Care Management","name":"Nursery Class Child","owner":"Administrator",
+ "permissions":[],"sort_field":"modified","sort_order":"DESC","track_changes":0
+}

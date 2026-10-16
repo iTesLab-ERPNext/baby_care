@@ -1,0 +1,8 @@
+{
+ "creation":"2024-01-01 00:00:00.000000","doctype":"Report",
+ "is_standard":"Yes","modified":"2024-01-01 00:00:00.000000","modified_by":"Administrator",
+ "module":"Baby Care Management","name":"Attendance Summary","owner":"Administrator",
+ "ref_doctype":"Child Attendance","report_name":"Attendance Summary",
+ "report_type":"Script Report",
+ "roles":[{"role":"Nursery Administrator"},{"role":"Nursery Teacher"},{"role":"Nursery Receptionist"}]
+}

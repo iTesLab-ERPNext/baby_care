@@ -1,0 +1,17 @@
+{
+ "actions":[],"creation":"2024-01-01 00:00:00.000000","doctype":"DocType",
+ "engine":"InnoDB","istable":1,
+ "field_order":["day_of_week","meal_category","menu_item","allergens","notes"],
+ "fields":[
+  {"fieldname":"day_of_week","fieldtype":"Select","label":"Day",
+   "options":"Monday\nTuesday\nWednesday\nThursday\nFriday\nSaturday\nSunday",
+   "reqd":1,"in_list_view":1},
+  {"fieldname":"meal_category","fieldtype":"Link","label":"Meal","options":"Meal Category","in_list_view":1},
+  {"fieldname":"menu_item","fieldtype":"Data","label":"Menu Item","in_list_view":1},
+  {"fieldname":"allergens","fieldtype":"Data","label":"Allergens (if any)"},
+  {"fieldname":"notes","fieldtype":"Small Text","label":"Notes"}
+ ],
+ "modified":"2024-01-01 00:00:00.000000","modified_by":"Administrator",
+ "module":"Baby Care Management","name":"Meal Plan Item","owner":"Administrator",
+ "permissions":[],"sort_field":"modified","sort_order":"DESC","track_changes":0
+}

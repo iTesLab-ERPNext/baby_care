@@ -1,0 +1,15 @@
+{
+ "actions":[],"creation":"2024-01-01 00:00:00.000000","doctype":"DocType",
+ "engine":"InnoDB","istable":1,
+ "field_order":["stop_name","pickup_time","dropoff_time","address","notes"],
+ "fields":[
+  {"fieldname":"stop_name","fieldtype":"Data","label":"Stop Name","reqd":1,"in_list_view":1},
+  {"fieldname":"pickup_time","fieldtype":"Time","label":"Pickup Time","in_list_view":1},
+  {"fieldname":"dropoff_time","fieldtype":"Time","label":"Drop-off Time","in_list_view":1},
+  {"fieldname":"address","fieldtype":"Data","label":"Address"},
+  {"fieldname":"notes","fieldtype":"Small Text","label":"Notes"}
+ ],
+ "modified":"2024-01-01 00:00:00.000000","modified_by":"Administrator",
+ "module":"Baby Care Management","name":"Transportation Stop","owner":"Administrator",
+ "permissions":[],"sort_field":"modified","sort_order":"DESC","track_changes":0
+}

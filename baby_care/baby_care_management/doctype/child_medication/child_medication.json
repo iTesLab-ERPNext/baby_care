@@ -1,0 +1,18 @@
+{
+ "actions":[],"creation":"2024-01-01 00:00:00.000000","doctype":"DocType",
+ "engine":"InnoDB","istable":1,
+ "field_order":["medication_name","dosage","frequency","route","prescribed_by","start_date","end_date","notes"],
+ "fields":[
+  {"fieldname":"medication_name","fieldtype":"Data","label":"Medication","reqd":1,"in_list_view":1},
+  {"fieldname":"dosage","fieldtype":"Data","label":"Dosage","in_list_view":1},
+  {"fieldname":"frequency","fieldtype":"Data","label":"Frequency","in_list_view":1},
+  {"fieldname":"route","fieldtype":"Select","label":"Route","options":"Oral\nTopical\nInhaled\nInjection\nOther"},
+  {"fieldname":"prescribed_by","fieldtype":"Data","label":"Prescribed By"},
+  {"fieldname":"start_date","fieldtype":"Date","label":"Start Date"},
+  {"fieldname":"end_date","fieldtype":"Date","label":"End Date"},
+  {"fieldname":"notes","fieldtype":"Small Text","label":"Administration Instructions"}
+ ],
+ "modified":"2024-01-01 00:00:00.000000","modified_by":"Administrator",
+ "module":"Baby Care Management","name":"Child Medication","owner":"Administrator",
+ "permissions":[],"sort_field":"modified","sort_order":"DESC","track_changes":0
+}

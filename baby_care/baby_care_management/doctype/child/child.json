@@ -1,0 +1,136 @@
+{
+ "actions": [
+  {"action_label":"View Medical Record","action":"Route","link":"Form/Medical Record/new-medical-record-1"},
+  {"action_label":"Create Subscription","action":"Route","link":"Form/Child Subscription/new-child-subscription-1"}
+ ],
+ "autoname": "field:full_name",
+ "creation": "2024-01-01 00:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "title_field": "full_name",
+ "image_field": "photo",
+ "search_fields": "full_name,date_of_birth,enrollment_status",
+ "field_order": [
+  "profile_section","full_name","first_name","last_name","col_break_profile",
+  "date_of_birth","age_display","gender","photo",
+  "enrollment_section","enrollment_status","registration_date","nursery_class","age_group",
+  "col_break_enroll","assigned_teacher","special_instructions",
+  "parents_section","parents",
+  "emergency_section","emergency_contacts",
+  "pickup_section","authorized_pickups",
+  "subscription_section","active_subscription","subscription_status",
+  "medical_section","has_allergies","has_chronic_condition","medical_notes",
+  "documents_section","notes_section","internal_notes"
+ ],
+ "fields": [
+  {"fieldname":"profile_section","fieldtype":"Section Break","label":"Profile"},
+  {"fieldname":"full_name","fieldtype":"Data","label":"Full Name","reqd":1,"unique":0,"bold":1},
+  {"fieldname":"first_name","fieldtype":"Data","label":"First Name","reqd":1,"in_list_view":1},
+  {"fieldname":"last_name","fieldtype":"Data","label":"Last Name","reqd":1,"in_list_view":1},
+  {"fieldname":"col_break_profile","fieldtype":"Column Break"},
+  {"fieldname":"date_of_birth","fieldtype":"Date","label":"Date of Birth","reqd":1,"in_list_view":1},
+  {"fieldname":"age_display","fieldtype":"Data","label":"Age","read_only":1},
+  {
+   "fieldname":"gender",
+   "fieldtype":"Select",
+   "label":"Gender",
+   "options":"Male\nFemale\nOther",
+   "reqd":1,
+   "in_list_view":1
+  },
+  {"fieldname":"photo","fieldtype":"Attach Image","label":"Photo"},
+  {"fieldname":"enrollment_section","fieldtype":"Section Break","label":"Enrollment"},
+  {
+   "fieldname":"enrollment_status",
+   "fieldtype":"Select",
+   "label":"Enrollment Status",
+   "options":"Pending\nActive\nSuspended\nWithdrawn\nGraduated",
+   "default":"Pending",
+   "reqd":1,
+   "in_list_view":1,
+   "in_standard_filter":1
+  },
+  {"fieldname":"registration_date","fieldtype":"Date","label":"Registration Date","reqd":1},
+  {
+   "fieldname":"nursery_class",
+   "fieldtype":"Link",
+   "label":"Class / Group",
+   "options":"Nursery Class",
+   "in_list_view":1,
+   "in_standard_filter":1
+  },
+  {
+   "fieldname":"age_group",
+   "fieldtype":"Link",
+   "label":"Age Group",
+   "options":"Age Group",
+   "in_standard_filter":1
+  },
+  {"fieldname":"col_break_enroll","fieldtype":"Column Break"},
+  {
+   "fieldname":"assigned_teacher",
+   "fieldtype":"Link",
+   "label":"Primary Teacher",
+   "options":"Teacher Profile",
+   "in_list_view":1,
+   "in_standard_filter":1
+  },
+  {"fieldname":"special_instructions","fieldtype":"Text Editor","label":"Special Instructions / Individual Requirements"},
+  {"fieldname":"parents_section","fieldtype":"Section Break","label":"Parents / Guardians"},
+  {
+   "fieldname":"parents",
+   "fieldtype":"Table",
+   "label":"Parents",
+   "options":"Child Parent Link"
+  },
+  {"fieldname":"emergency_section","fieldtype":"Section Break","label":"Emergency Contacts"},
+  {
+   "fieldname":"emergency_contacts",
+   "fieldtype":"Table",
+   "label":"Emergency Contacts",
+   "options":"Child Emergency Contact"
+  },
+  {"fieldname":"pickup_section","fieldtype":"Section Break","label":"Authorized Pickup Persons"},
+  {
+   "fieldname":"authorized_pickups",
+   "fieldtype":"Table",
+   "label":"Authorized Pickup",
+   "options":"Child Authorized Pickup"
+  },
+  {"fieldname":"subscription_section","fieldtype":"Section Break","label":"Subscription"},
+  {
+   "fieldname":"active_subscription",
+   "fieldtype":"Link",
+   "label":"Active Subscription",
+   "options":"Child Subscription",
+   "read_only":1
+  },
+  {
+   "fieldname":"subscription_status",
+   "fieldtype":"Data",
+   "label":"Subscription Status",
+   "read_only":1
+  },
+  {"fieldname":"medical_section","fieldtype":"Section Break","label":"Medical Summary"},
+  {"fieldname":"has_allergies","fieldtype":"Check","label":"Has Known Allergies","default":"0"},
+  {"fieldname":"has_chronic_condition","fieldtype":"Check","label":"Has Chronic Condition","default":"0"},
+  {"fieldname":"medical_notes","fieldtype":"Small Text","label":"Medical Summary (Visible to Staff)","description":"Brief summary only — full medical record is restricted"},
+  {"fieldname":"documents_section","fieldtype":"Section Break","label":"Documents"},
+  {"fieldname":"notes_section","fieldtype":"Section Break","label":"Internal Notes"},
+  {"fieldname":"internal_notes","fieldtype":"Text Editor","label":"Internal Notes"}
+ ],
+ "modified": "2024-01-01 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Baby Care Management",
+ "name": "Child",
+ "owner": "Administrator",
+ "permissions": [
+  {"read":1,"write":1,"create":1,"delete":1,"email":1,"print":1,"share":1,"role":"Nursery Administrator"},
+  {"read":1,"write":1,"create":1,"role":"Nursery Receptionist"},
+  {"read":1,"role":"Nursery Teacher","permlevel":0},
+  {"read":1,"role":"Nursery Medical Staff","permlevel":0}
+ ],
+ "sort_field": "registration_date",
+ "sort_order": "DESC",
+ "track_changes": 1
+}

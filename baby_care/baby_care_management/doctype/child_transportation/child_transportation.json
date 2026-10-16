@@ -1,0 +1,27 @@
+{
+ "actions":[],"autoname":"format:TRP-{####}",
+ "creation":"2024-01-01 00:00:00.000000","doctype":"DocType","engine":"InnoDB",
+ "field_order":["child","route","pickup_stop","col_break","dropoff_stop",
+  "direction","start_date","end_date","col_break2","is_active","notes"],
+ "fields":[
+  {"fieldname":"child","fieldtype":"Link","label":"Child","options":"Child","reqd":1,"in_list_view":1},
+  {"fieldname":"route","fieldtype":"Link","label":"Route","options":"Transportation Route","reqd":1,"in_list_view":1},
+  {"fieldname":"pickup_stop","fieldtype":"Data","label":"Pickup Stop"},
+  {"fieldname":"col_break","fieldtype":"Column Break"},
+  {"fieldname":"dropoff_stop","fieldtype":"Data","label":"Drop-off Stop"},
+  {"fieldname":"direction","fieldtype":"Select","label":"Direction",
+   "options":"Both\nMorning Only\nAfternoon Only"},
+  {"fieldname":"start_date","fieldtype":"Date","label":"Start Date"},
+  {"fieldname":"end_date","fieldtype":"Date","label":"End Date"},
+  {"fieldname":"col_break2","fieldtype":"Column Break"},
+  {"fieldname":"is_active","fieldtype":"Check","label":"Is Active","default":"1","in_list_view":1},
+  {"fieldname":"notes","fieldtype":"Small Text","label":"Special Instructions"}
+ ],
+ "modified":"2024-01-01 00:00:00.000000","modified_by":"Administrator",
+ "module":"Baby Care Management","name":"Child Transportation","owner":"Administrator",
+ "permissions":[
+  {"read":1,"write":1,"create":1,"delete":1,"role":"Nursery Administrator"},
+  {"read":1,"role":"Nursery Receptionist"}
+ ],
+ "sort_field":"modified","sort_order":"DESC","track_changes":0
+}

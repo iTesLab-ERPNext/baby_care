@@ -1,0 +1,4 @@
+[pre_model_sync]
+
+[post_model_sync]
+baby_care.patches.v1_0.create_default_settings

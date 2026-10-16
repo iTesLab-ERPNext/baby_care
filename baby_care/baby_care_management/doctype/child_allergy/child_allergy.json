@@ -1,0 +1,14 @@
+{
+ "actions":[],"creation":"2024-01-01 00:00:00.000000","doctype":"DocType",
+ "engine":"InnoDB","istable":1,
+ "field_order":["allergen","severity","reaction","treatment"],
+ "fields":[
+  {"fieldname":"allergen","fieldtype":"Data","label":"Allergen","reqd":1,"in_list_view":1},
+  {"fieldname":"severity","fieldtype":"Select","label":"Severity","options":"Mild\nModerate\nSevere\nLife-Threatening","in_list_view":1},
+  {"fieldname":"reaction","fieldtype":"Data","label":"Reaction / Symptoms","in_list_view":1},
+  {"fieldname":"treatment","fieldtype":"Small Text","label":"Treatment / Instructions"}
+ ],
+ "modified":"2024-01-01 00:00:00.000000","modified_by":"Administrator",
+ "module":"Baby Care Management","name":"Child Allergy","owner":"Administrator",
+ "permissions":[],"sort_field":"modified","sort_order":"DESC","track_changes":0
+}

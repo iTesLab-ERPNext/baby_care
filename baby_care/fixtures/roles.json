@@ -1,0 +1,7 @@
+[
+ {"doctype":"Role","name":"Nursery Administrator","role_name":"Nursery Administrator","desk_access":1,"is_custom":1},
+ {"doctype":"Role","name":"Nursery Accountant","role_name":"Nursery Accountant","desk_access":1,"is_custom":1},
+ {"doctype":"Role","name":"Nursery Teacher","role_name":"Nursery Teacher","desk_access":1,"is_custom":1},
+ {"doctype":"Role","name":"Nursery Medical Staff","role_name":"Nursery Medical Staff","desk_access":1,"is_custom":1},
+ {"doctype":"Role","name":"Nursery Receptionist","role_name":"Nursery Receptionist","desk_access":1,"is_custom":1}
+]

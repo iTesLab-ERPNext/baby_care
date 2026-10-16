@@ -1,0 +1,31 @@
+{
+ "actions":[],"autoname":"field:class_name",
+ "creation":"2024-01-01 00:00:00.000000","doctype":"DocType","engine":"InnoDB",
+ "title_field":"class_name",
+ "field_order":["class_name","age_group","col_break","capacity","current_enrollment",
+  "status","teachers_section","teachers","children_section","children",
+  "schedule_section","schedule_notes"],
+ "fields":[
+  {"fieldname":"class_name","fieldtype":"Data","label":"Class / Group Name","reqd":1,"unique":1,"in_list_view":1},
+  {"fieldname":"age_group","fieldtype":"Link","label":"Age Group","options":"Age Group","in_list_view":1},
+  {"fieldname":"col_break","fieldtype":"Column Break"},
+  {"fieldname":"capacity","fieldtype":"Int","label":"Maximum Capacity","default":"20"},
+  {"fieldname":"current_enrollment","fieldtype":"Int","label":"Current Enrollment","read_only":1},
+  {"fieldname":"status","fieldtype":"Select","label":"Status",
+   "options":"Active\nInactive","default":"Active","in_list_view":1},
+  {"fieldname":"teachers_section","fieldtype":"Section Break","label":"Teachers"},
+  {"fieldname":"teachers","fieldtype":"Table","label":"Teachers","options":"Nursery Class Teacher"},
+  {"fieldname":"children_section","fieldtype":"Section Break","label":"Enrolled Children"},
+  {"fieldname":"children","fieldtype":"Table","label":"Children","options":"Nursery Class Child"},
+  {"fieldname":"schedule_section","fieldtype":"Section Break","label":"Schedule"},
+  {"fieldname":"schedule_notes","fieldtype":"Text Editor","label":"Schedule / Activity Notes"}
+ ],
+ "modified":"2024-01-01 00:00:00.000000","modified_by":"Administrator",
+ "module":"Baby Care Management","name":"Nursery Class","owner":"Administrator",
+ "permissions":[
+  {"read":1,"write":1,"create":1,"delete":1,"role":"Nursery Administrator"},
+  {"read":1,"role":"Nursery Teacher"},
+  {"read":1,"role":"Nursery Receptionist"}
+ ],
+ "sort_field":"class_name","sort_order":"ASC","track_changes":1
+}

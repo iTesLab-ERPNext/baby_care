@@ -1,0 +1,91 @@
+[
+ {
+  "doctype": "Workspace",
+  "name": "Baby Care Management",
+  "title": "Baby Care Management",
+  "label": "Baby Care Management",
+  "module": "Baby Care Management",
+  "icon": "baby",
+  "is_default": 0,
+  "public": 1,
+  "hide_custom": 0,
+  "content": "[{\"type\":\"onboarding\",\"data\":{\"onboarding_name\":\"Baby Care\",\"col\":12}},{\"type\":\"chart\",\"data\":{\"chart_name\":\"Total Enrolled Children\",\"col\":12}}]",
+  "charts": [
+   {"label": "Children by Class", "chart_name": "Children by Class"}
+  ],
+  "shortcuts": [
+   {"label": "Child", "link_to": "Child", "type": "DocType", "icon": "baby"},
+   {"label": "Medical Record", "link_to": "Medical Record", "type": "DocType", "icon": "heart"},
+   {"label": "Child Subscription", "link_to": "Child Subscription", "type": "DocType", "icon": "subscription"},
+   {"label": "Child Attendance", "link_to": "Child Attendance", "type": "DocType", "icon": "calendar"},
+   {"label": "Sales Invoice", "link_to": "Sales Invoice", "type": "DocType", "icon": "accounting"},
+   {"label": "Payment Entry", "link_to": "Payment Entry", "type": "DocType", "icon": "currency"},
+   {"label": "Nursery Settings", "link_to": "Nursery Settings", "type": "DocType", "icon": "settings"}
+  ],
+  "links": [
+   {
+    "label": "Children",
+    "items": [
+     {"label": "Child", "link_to": "Child", "type": "DocType"},
+     {"label": "Medical Record", "link_to": "Medical Record", "type": "DocType"},
+     {"label": "Health Incident", "link_to": "Health Incident", "type": "DocType"},
+     {"label": "Child Document", "link_to": "Child Document", "type": "DocType"},
+     {"label": "Child Attendance", "link_to": "Child Attendance", "type": "DocType"}
+    ]
+   },
+   {
+    "label": "Classes & Teachers",
+    "items": [
+     {"label": "Nursery Class", "link_to": "Nursery Class", "type": "DocType"},
+     {"label": "Teacher Profile", "link_to": "Teacher Profile", "type": "DocType"},
+     {"label": "Age Group", "link_to": "Age Group", "type": "DocType"}
+    ]
+   },
+   {
+    "label": "Subscriptions & Billing",
+    "items": [
+     {"label": "Child Subscription", "link_to": "Child Subscription", "type": "DocType"},
+     {"label": "Subscription Plan", "link_to": "Subscription Plan", "type": "DocType"},
+     {"label": "Sales Invoice", "link_to": "Sales Invoice", "type": "DocType"},
+     {"label": "Payment Entry", "link_to": "Payment Entry", "type": "DocType"}
+    ]
+   },
+   {
+    "label": "Services & Meals",
+    "items": [
+     {"label": "Nursery Service", "link_to": "Nursery Service", "type": "DocType"},
+     {"label": "Service Category", "link_to": "Service Category", "type": "DocType"},
+     {"label": "Meal Plan", "link_to": "Meal Plan", "type": "DocType"},
+     {"label": "Child Meal Plan", "link_to": "Child Meal Plan", "type": "DocType"},
+     {"label": "Meal Category", "link_to": "Meal Category", "type": "DocType"}
+    ]
+   },
+   {
+    "label": "Transportation",
+    "items": [
+     {"label": "Transportation Route", "link_to": "Transportation Route", "type": "DocType"},
+     {"label": "Child Transportation", "link_to": "Child Transportation", "type": "DocType"}
+    ]
+   },
+   {
+    "label": "Reports",
+    "items": [
+     {"label": "Enrolled Children Summary", "link_to": "Enrolled Children Summary", "type": "Report"},
+     {"label": "Subscription Status Report", "link_to": "Subscription Status Report", "type": "Report"},
+     {"label": "Revenue Report", "link_to": "Revenue Report", "type": "Report"},
+     {"label": "Attendance Summary", "link_to": "Attendance Summary", "type": "Report"}
+    ]
+   },
+   {
+    "label": "Configuration",
+    "items": [
+     {"label": "Nursery Settings", "link_to": "Nursery Settings", "type": "DocType"},
+     {"label": "Subscription Plan", "link_to": "Subscription Plan", "type": "DocType"},
+     {"label": "Nursery Service", "link_to": "Nursery Service", "type": "DocType"},
+     {"label": "Document Type Config", "link_to": "Document Type Config", "type": "DocType"},
+     {"label": "Attendance Status", "link_to": "Attendance Status", "type": "DocType"}
+    ]
+   }
+  ]
+ }
+]
