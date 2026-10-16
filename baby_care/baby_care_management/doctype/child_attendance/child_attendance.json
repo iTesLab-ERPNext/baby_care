@@ -1,33 +1,169 @@
 {
- "actions":[],"autoname":"format:ATT-{####}",
- "creation":"2024-01-01 00:00:00.000000","doctype":"DocType","engine":"InnoDB",
- "title_field":"child",
- "field_order":["child","attendance_date","col_break","status","nursery_class",
-  "time_section","check_in_time","check_out_time","col_break2",
-  "recorded_by","pickup_person",
-  "reason_section","absence_reason","notes"],
- "fields":[
-  {"fieldname":"child","fieldtype":"Link","label":"Child","options":"Child","reqd":1,"in_list_view":1},
-  {"fieldname":"attendance_date","fieldtype":"Date","label":"Date","reqd":1,"default":"Today","in_list_view":1},
-  {"fieldname":"col_break","fieldtype":"Column Break"},
-  {"fieldname":"status","fieldtype":"Link","label":"Status","options":"Attendance Status","reqd":1,"in_list_view":1},
-  {"fieldname":"nursery_class","fieldtype":"Link","label":"Class","options":"Nursery Class","in_list_view":1},
-  {"fieldname":"time_section","fieldtype":"Section Break","label":"Times"},
-  {"fieldname":"check_in_time","fieldtype":"Time","label":"Check-In Time"},
-  {"fieldname":"check_out_time","fieldtype":"Time","label":"Check-Out Time"},
-  {"fieldname":"col_break2","fieldtype":"Column Break"},
-  {"fieldname":"recorded_by","fieldtype":"Link","label":"Recorded By","options":"User","default":"__user"},
-  {"fieldname":"pickup_person","fieldtype":"Data","label":"Picked Up By"},
-  {"fieldname":"reason_section","fieldtype":"Section Break","label":"Absence / Notes"},
-  {"fieldname":"absence_reason","fieldtype":"Data","label":"Absence Reason"},
-  {"fieldname":"notes","fieldtype":"Small Text","label":"Notes"}
+ "actions": [],
+ "autoname": "format:ATT-{####}",
+ "creation": "2024-01-01 00:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "title_field": "child",
+ "field_order": [
+  "child",
+  "attendance_date",
+  "col_break",
+  "status",
+  "nursery_class",
+  "time_section",
+  "check_in_time",
+  "check_out_time",
+  "col_break2",
+  "recorded_by",
+  "pickup_person",
+  "reason_section",
+  "absence_reason",
+  "notes"
  ],
- "modified":"2024-01-01 00:00:00.000000","modified_by":"Administrator",
- "module":"Baby Care Management","name":"Child Attendance","owner":"Administrator",
- "permissions":[
-  {"read":1,"write":1,"create":1,"delete":1,"role":"Nursery Administrator"},
-  {"read":1,"write":1,"create":1,"role":"Nursery Teacher"},
-  {"read":1,"write":1,"create":1,"role":"Nursery Receptionist"}
+ "fields": [
+  {
+   "fieldname": "child",
+   "fieldtype": "Link",
+   "label": "Child",
+   "options": "Child",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "attendance_date",
+   "fieldtype": "Date",
+   "label": "Date",
+   "reqd": 1,
+   "default": "Today",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "col_break",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "status",
+   "fieldtype": "Link",
+   "label": "Status",
+   "options": "Attendance Status",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "nursery_class",
+   "fieldtype": "Link",
+   "label": "Class",
+   "options": "Nursery Class",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "time_section",
+   "fieldtype": "Section Break",
+   "label": "Times"
+  },
+  {
+   "fieldname": "check_in_time",
+   "fieldtype": "Time",
+   "label": "Check-In Time"
+  },
+  {
+   "fieldname": "check_out_time",
+   "fieldtype": "Time",
+   "label": "Check-Out Time"
+  },
+  {
+   "fieldname": "col_break2",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "recorded_by",
+   "fieldtype": "Link",
+   "label": "Recorded By",
+   "options": "User",
+   "default": "__user"
+  },
+  {
+   "fieldname": "pickup_person",
+   "fieldtype": "Data",
+   "label": "Picked Up By"
+  },
+  {
+   "fieldname": "reason_section",
+   "fieldtype": "Section Break",
+   "label": "Absence / Notes"
+  },
+  {
+   "fieldname": "absence_reason",
+   "fieldtype": "Data",
+   "label": "Absence Reason"
+  },
+  {
+   "fieldname": "notes",
+   "fieldtype": "Small Text",
+   "label": "Notes"
+  }
  ],
- "sort_field":"attendance_date","sort_order":"DESC","track_changes":1
+ "modified": "2024-01-01 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Baby Care Management",
+ "name": "Child Attendance",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "role": "System Manager",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "submit": 0,
+   "cancel": 0,
+   "amend": 0,
+   "report": 1,
+   "export": 1,
+   "import": 1,
+   "share": 1,
+   "print": 1,
+   "email": 1
+  },
+  {
+   "role": "Nursery Administrator",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "submit": 0,
+   "cancel": 0,
+   "amend": 0,
+   "report": 1,
+   "export": 1,
+   "import": 0,
+   "share": 1,
+   "print": 1,
+   "email": 1
+  },
+  {
+   "role": "Nursery Receptionist",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 0,
+   "report": 1,
+   "export": 0,
+   "print": 1,
+   "email": 0
+  },
+  {
+   "role": "Nursery Teacher",
+   "read": 1,
+   "report": 0,
+   "export": 0,
+   "print": 0,
+   "write": 1,
+   "create": 1
+  }
+ ],
+ "sort_field": "attendance_date",
+ "sort_order": "DESC",
+ "track_changes": 1
 }

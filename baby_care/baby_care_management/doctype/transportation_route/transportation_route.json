@@ -1,30 +1,141 @@
 {
- "actions":[],"autoname":"field:route_name",
- "creation":"2024-01-01 00:00:00.000000","doctype":"DocType","engine":"InnoDB",
- "field_order":["route_name","driver_name","driver_phone","col_break",
-  "vehicle_plate","vehicle_description","capacity","is_active",
-  "stops_section","stops",
-  "fee_section","monthly_fee","notes"],
- "fields":[
-  {"fieldname":"route_name","fieldtype":"Data","label":"Route Name","reqd":1,"unique":1,"in_list_view":1},
-  {"fieldname":"driver_name","fieldtype":"Data","label":"Driver Name","in_list_view":1},
-  {"fieldname":"driver_phone","fieldtype":"Phone","label":"Driver Phone"},
-  {"fieldname":"col_break","fieldtype":"Column Break"},
-  {"fieldname":"vehicle_plate","fieldtype":"Data","label":"Vehicle Plate"},
-  {"fieldname":"vehicle_description","fieldtype":"Data","label":"Vehicle Description"},
-  {"fieldname":"capacity","fieldtype":"Int","label":"Capacity (Children)"},
-  {"fieldname":"is_active","fieldtype":"Check","label":"Is Active","default":"1","in_list_view":1},
-  {"fieldname":"stops_section","fieldtype":"Section Break","label":"Stops"},
-  {"fieldname":"stops","fieldtype":"Table","label":"Stops","options":"Transportation Stop"},
-  {"fieldname":"fee_section","fieldtype":"Section Break","label":"Fees"},
-  {"fieldname":"monthly_fee","fieldtype":"Currency","label":"Monthly Fee"},
-  {"fieldname":"notes","fieldtype":"Small Text","label":"Notes"}
+ "actions": [],
+ "autoname": "field:route_name",
+ "creation": "2024-01-01 00:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "route_name",
+  "driver_name",
+  "driver_phone",
+  "col_break",
+  "vehicle_plate",
+  "vehicle_description",
+  "capacity",
+  "is_active",
+  "stops_section",
+  "stops",
+  "fee_section",
+  "monthly_fee",
+  "notes"
  ],
- "modified":"2024-01-01 00:00:00.000000","modified_by":"Administrator",
- "module":"Baby Care Management","name":"Transportation Route","owner":"Administrator",
- "permissions":[
-  {"read":1,"write":1,"create":1,"delete":1,"role":"Nursery Administrator"},
-  {"read":1,"role":"Nursery Receptionist"}
+ "fields": [
+  {
+   "fieldname": "route_name",
+   "fieldtype": "Data",
+   "label": "Route Name",
+   "reqd": 1,
+   "unique": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "driver_name",
+   "fieldtype": "Data",
+   "label": "Driver Name",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "driver_phone",
+   "fieldtype": "Phone",
+   "label": "Driver Phone"
+  },
+  {
+   "fieldname": "col_break",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "vehicle_plate",
+   "fieldtype": "Data",
+   "label": "Vehicle Plate"
+  },
+  {
+   "fieldname": "vehicle_description",
+   "fieldtype": "Data",
+   "label": "Vehicle Description"
+  },
+  {
+   "fieldname": "capacity",
+   "fieldtype": "Int",
+   "label": "Capacity (Children)"
+  },
+  {
+   "fieldname": "is_active",
+   "fieldtype": "Check",
+   "label": "Is Active",
+   "default": "1",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "stops_section",
+   "fieldtype": "Section Break",
+   "label": "Stops"
+  },
+  {
+   "fieldname": "stops",
+   "fieldtype": "Table",
+   "label": "Stops",
+   "options": "Transportation Stop"
+  },
+  {
+   "fieldname": "fee_section",
+   "fieldtype": "Section Break",
+   "label": "Fees"
+  },
+  {
+   "fieldname": "monthly_fee",
+   "fieldtype": "Currency",
+   "label": "Monthly Fee"
+  },
+  {
+   "fieldname": "notes",
+   "fieldtype": "Small Text",
+   "label": "Notes"
+  }
  ],
- "sort_field":"route_name","sort_order":"ASC","track_changes":1
+ "modified": "2024-01-01 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Baby Care Management",
+ "name": "Transportation Route",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "role": "System Manager",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "submit": 0,
+   "cancel": 0,
+   "amend": 0,
+   "report": 1,
+   "export": 1,
+   "import": 1,
+   "share": 1,
+   "print": 1,
+   "email": 1
+  },
+  {
+   "role": "Nursery Administrator",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "submit": 0,
+   "cancel": 0,
+   "amend": 0,
+   "report": 1,
+   "export": 1,
+   "import": 0,
+   "share": 1,
+   "print": 1,
+   "email": 1
+  },
+  {
+   "role": "Nursery Receptionist",
+   "read": 1
+  }
+ ],
+ "sort_field": "route_name",
+ "sort_order": "ASC",
+ "track_changes": 1
 }

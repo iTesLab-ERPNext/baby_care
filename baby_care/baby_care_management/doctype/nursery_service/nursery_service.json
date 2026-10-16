@@ -1,43 +1,184 @@
 {
- "actions":[],"autoname":"field:service_name",
- "creation":"2024-01-01 00:00:00.000000","doctype":"DocType","engine":"InnoDB",
- "title_field":"service_name",
- "field_order":[
-  "service_name","category","col_break_1","pricing_method","price","billing_frequency",
-  "availability_section","is_active","is_optional","availability","eligibility_notes",
-  "scope_section","scope","erpnext_item",
-  "description_section","description","start_date","end_date"
+ "actions": [],
+ "autoname": "field:service_name",
+ "creation": "2024-01-01 00:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "title_field": "service_name",
+ "field_order": [
+  "service_name",
+  "category",
+  "col_break_1",
+  "pricing_method",
+  "price",
+  "billing_frequency",
+  "availability_section",
+  "is_active",
+  "is_optional",
+  "availability",
+  "eligibility_notes",
+  "scope_section",
+  "scope",
+  "erpnext_item",
+  "description_section",
+  "description",
+  "start_date",
+  "end_date"
  ],
- "fields":[
-  {"fieldname":"service_name","fieldtype":"Data","label":"Service Name","reqd":1,"unique":1,"in_list_view":1},
-  {"fieldname":"category","fieldtype":"Link","label":"Category","options":"Service Category","in_list_view":1},
-  {"fieldname":"col_break_1","fieldtype":"Column Break"},
-  {"fieldname":"pricing_method","fieldtype":"Select","label":"Pricing Method",
-   "options":"Fixed\nPer Session\nMonthly\nIncluded in Subscription"},
-  {"fieldname":"price","fieldtype":"Currency","label":"Price","in_list_view":1},
-  {"fieldname":"billing_frequency","fieldtype":"Select","label":"Billing Frequency",
-   "options":"Monthly\nQuarterly\nPer Use\nIncluded"},
-  {"fieldname":"availability_section","fieldtype":"Section Break","label":"Availability & Eligibility"},
-  {"fieldname":"is_active","fieldtype":"Check","label":"Is Active","default":"1","in_list_view":1},
-  {"fieldname":"is_optional","fieldtype":"Check","label":"Optional (Add-On)","default":"1"},
-  {"fieldname":"availability","fieldtype":"Select","label":"Availability",
-   "options":"All\nSelected Age Groups\nSelected Classes"},
-  {"fieldname":"eligibility_notes","fieldtype":"Small Text","label":"Eligibility Notes"},
-  {"fieldname":"scope_section","fieldtype":"Section Break","label":"ERPNext Integration"},
-  {"fieldname":"scope","fieldtype":"Select","label":"Scope","options":"Global\nClass-Level\nChild-Specific"},
-  {"fieldname":"erpnext_item","fieldtype":"Link","label":"Linked ERPNext Item","options":"Item",
-   "description":"Link to an ERPNext Item for invoicing"},
-  {"fieldname":"description_section","fieldtype":"Section Break","label":"Details"},
-  {"fieldname":"description","fieldtype":"Text Editor","label":"Description"},
-  {"fieldname":"start_date","fieldtype":"Date","label":"Available From"},
-  {"fieldname":"end_date","fieldtype":"Date","label":"Available Until"}
+ "fields": [
+  {
+   "fieldname": "service_name",
+   "fieldtype": "Data",
+   "label": "Service Name",
+   "reqd": 1,
+   "unique": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "category",
+   "fieldtype": "Link",
+   "label": "Category",
+   "options": "Service Category",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "col_break_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "pricing_method",
+   "fieldtype": "Select",
+   "label": "Pricing Method",
+   "options": "Fixed\nPer Session\nMonthly\nIncluded in Subscription"
+  },
+  {
+   "fieldname": "price",
+   "fieldtype": "Currency",
+   "label": "Price",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "billing_frequency",
+   "fieldtype": "Select",
+   "label": "Billing Frequency",
+   "options": "Monthly\nQuarterly\nPer Use\nIncluded"
+  },
+  {
+   "fieldname": "availability_section",
+   "fieldtype": "Section Break",
+   "label": "Availability & Eligibility"
+  },
+  {
+   "fieldname": "is_active",
+   "fieldtype": "Check",
+   "label": "Is Active",
+   "default": "1",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "is_optional",
+   "fieldtype": "Check",
+   "label": "Optional (Add-On)",
+   "default": "1"
+  },
+  {
+   "fieldname": "availability",
+   "fieldtype": "Select",
+   "label": "Availability",
+   "options": "All\nSelected Age Groups\nSelected Classes"
+  },
+  {
+   "fieldname": "eligibility_notes",
+   "fieldtype": "Small Text",
+   "label": "Eligibility Notes"
+  },
+  {
+   "fieldname": "scope_section",
+   "fieldtype": "Section Break",
+   "label": "ERPNext Integration"
+  },
+  {
+   "fieldname": "scope",
+   "fieldtype": "Select",
+   "label": "Scope",
+   "options": "Global\nClass-Level\nChild-Specific"
+  },
+  {
+   "fieldname": "erpnext_item",
+   "fieldtype": "Link",
+   "label": "Linked ERPNext Item",
+   "options": "Item",
+   "description": "Link to an ERPNext Item for invoicing"
+  },
+  {
+   "fieldname": "description_section",
+   "fieldtype": "Section Break",
+   "label": "Details"
+  },
+  {
+   "fieldname": "description",
+   "fieldtype": "Text Editor",
+   "label": "Description"
+  },
+  {
+   "fieldname": "start_date",
+   "fieldtype": "Date",
+   "label": "Available From"
+  },
+  {
+   "fieldname": "end_date",
+   "fieldtype": "Date",
+   "label": "Available Until"
+  }
  ],
- "modified":"2024-01-01 00:00:00.000000","modified_by":"Administrator",
- "module":"Baby Care Management","name":"Nursery Service","owner":"Administrator",
- "permissions":[
-  {"read":1,"write":1,"create":1,"delete":1,"role":"Nursery Administrator"},
-  {"read":1,"role":"Nursery Receptionist"},
-  {"read":1,"role":"Nursery Accountant"}
+ "modified": "2024-01-01 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Baby Care Management",
+ "name": "Nursery Service",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "role": "System Manager",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "submit": 0,
+   "cancel": 0,
+   "amend": 0,
+   "report": 1,
+   "export": 1,
+   "import": 1,
+   "share": 1,
+   "print": 1,
+   "email": 1
+  },
+  {
+   "role": "Nursery Administrator",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "submit": 0,
+   "cancel": 0,
+   "amend": 0,
+   "report": 1,
+   "export": 1,
+   "import": 0,
+   "share": 1,
+   "print": 1,
+   "email": 1
+  },
+  {
+   "role": "Nursery Accountant",
+   "read": 1
+  },
+  {
+   "role": "Nursery Receptionist",
+   "read": 1
+  }
  ],
- "sort_field":"service_name","sort_order":"ASC","track_changes":1
+ "sort_field": "service_name",
+ "sort_order": "ASC",
+ "track_changes": 1
 }

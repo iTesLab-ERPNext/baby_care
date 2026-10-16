@@ -1,46 +1,194 @@
 {
- "actions":[],"autoname":"field:plan_name",
- "creation":"2024-01-01 00:00:00.000000","doctype":"DocType","engine":"InnoDB",
- "title_field":"plan_name",
- "field_order":[
-  "plan_name","description","col_break_1","billing_frequency","duration_months",
-  "pricing_section","base_price","currency","tax_template",
-  "col_break_2","renewal_type","trial_days",
-  "services_section","services",
-  "discount_section","multi_child_discount_override","early_payment_discount_percent",
-  "status_section","is_active","notes"
+ "actions": [],
+ "autoname": "field:plan_name",
+ "creation": "2024-01-01 00:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "title_field": "plan_name",
+ "field_order": [
+  "plan_name",
+  "description",
+  "col_break_1",
+  "billing_frequency",
+  "duration_months",
+  "pricing_section",
+  "base_price",
+  "currency",
+  "tax_template",
+  "col_break_2",
+  "renewal_type",
+  "trial_days",
+  "services_section",
+  "services",
+  "discount_section",
+  "multi_child_discount_override",
+  "early_payment_discount_percent",
+  "status_section",
+  "is_active",
+  "notes"
  ],
- "fields":[
-  {"fieldname":"plan_name","fieldtype":"Data","label":"Plan Name","reqd":1,"unique":1,"in_list_view":1},
-  {"fieldname":"description","fieldtype":"Small Text","label":"Description"},
-  {"fieldname":"col_break_1","fieldtype":"Column Break"},
-  {"fieldname":"billing_frequency","fieldtype":"Select","label":"Billing Frequency",
-   "options":"Monthly\nQuarterly\nAnnual\nCustom","reqd":1,"in_list_view":1},
-  {"fieldname":"duration_months","fieldtype":"Int","label":"Duration (Months)",
-   "description":"Leave 0 for open-ended. For Custom billing frequency set the number of months."},
-  {"fieldname":"pricing_section","fieldtype":"Section Break","label":"Pricing"},
-  {"fieldname":"base_price","fieldtype":"Currency","label":"Base Price","reqd":1,"in_list_view":1},
-  {"fieldname":"currency","fieldtype":"Link","label":"Currency","options":"Currency"},
-  {"fieldname":"tax_template","fieldtype":"Link","label":"Tax Template","options":"Sales Taxes and Charges Template"},
-  {"fieldname":"col_break_2","fieldtype":"Column Break"},
-  {"fieldname":"renewal_type","fieldtype":"Select","label":"Renewal","options":"Auto-Renew\nManual\nNo Renewal"},
-  {"fieldname":"trial_days","fieldtype":"Int","label":"Trial Days","default":"0"},
-  {"fieldname":"services_section","fieldtype":"Section Break","label":"Included / Optional Services"},
-  {"fieldname":"services","fieldtype":"Table","label":"Services","options":"Subscription Plan Service"},
-  {"fieldname":"discount_section","fieldtype":"Section Break","label":"Discounts"},
-  {"fieldname":"multi_child_discount_override","fieldtype":"Float","label":"Multi-Child Discount Override (%)",
-   "description":"Overrides the global setting from Nursery Settings. Leave 0 to use global setting."},
-  {"fieldname":"early_payment_discount_percent","fieldtype":"Float","label":"Early Payment Discount (%)"},
-  {"fieldname":"status_section","fieldtype":"Section Break","label":"Status"},
-  {"fieldname":"is_active","fieldtype":"Check","label":"Is Active","default":"1","in_list_view":1},
-  {"fieldname":"notes","fieldtype":"Small Text","label":"Notes"}
+ "fields": [
+  {
+   "fieldname": "plan_name",
+   "fieldtype": "Data",
+   "label": "Plan Name",
+   "reqd": 1,
+   "unique": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "description",
+   "fieldtype": "Small Text",
+   "label": "Description"
+  },
+  {
+   "fieldname": "col_break_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "billing_frequency",
+   "fieldtype": "Select",
+   "label": "Billing Frequency",
+   "options": "Monthly\nQuarterly\nAnnual\nCustom",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "duration_months",
+   "fieldtype": "Int",
+   "label": "Duration (Months)",
+   "description": "Leave 0 for open-ended. For Custom billing frequency set the number of months."
+  },
+  {
+   "fieldname": "pricing_section",
+   "fieldtype": "Section Break",
+   "label": "Pricing"
+  },
+  {
+   "fieldname": "base_price",
+   "fieldtype": "Currency",
+   "label": "Base Price",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "currency",
+   "fieldtype": "Link",
+   "label": "Currency",
+   "options": "Currency"
+  },
+  {
+   "fieldname": "tax_template",
+   "fieldtype": "Link",
+   "label": "Tax Template",
+   "options": "Sales Taxes and Charges Template"
+  },
+  {
+   "fieldname": "col_break_2",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "renewal_type",
+   "fieldtype": "Select",
+   "label": "Renewal",
+   "options": "Auto-Renew\nManual\nNo Renewal"
+  },
+  {
+   "fieldname": "trial_days",
+   "fieldtype": "Int",
+   "label": "Trial Days",
+   "default": "0"
+  },
+  {
+   "fieldname": "services_section",
+   "fieldtype": "Section Break",
+   "label": "Included / Optional Services"
+  },
+  {
+   "fieldname": "services",
+   "fieldtype": "Table",
+   "label": "Services",
+   "options": "Subscription Plan Service"
+  },
+  {
+   "fieldname": "discount_section",
+   "fieldtype": "Section Break",
+   "label": "Discounts"
+  },
+  {
+   "fieldname": "multi_child_discount_override",
+   "fieldtype": "Float",
+   "label": "Multi-Child Discount Override (%)",
+   "description": "Overrides the global setting from Nursery Settings. Leave 0 to use global setting."
+  },
+  {
+   "fieldname": "early_payment_discount_percent",
+   "fieldtype": "Float",
+   "label": "Early Payment Discount (%)"
+  },
+  {
+   "fieldname": "status_section",
+   "fieldtype": "Section Break",
+   "label": "Status"
+  },
+  {
+   "fieldname": "is_active",
+   "fieldtype": "Check",
+   "label": "Is Active",
+   "default": "1",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "notes",
+   "fieldtype": "Small Text",
+   "label": "Notes"
+  }
  ],
- "modified":"2024-01-01 00:00:00.000000","modified_by":"Administrator",
- "module":"Baby Care Management","name":"Subscription Plan","owner":"Administrator",
- "permissions":[
-  {"read":1,"write":1,"create":1,"delete":1,"role":"Nursery Administrator"},
-  {"read":1,"role":"Nursery Accountant"},
-  {"read":1,"role":"Nursery Receptionist"}
+ "modified": "2024-01-01 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Baby Care Management",
+ "name": "Subscription Plan",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "role": "System Manager",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "submit": 0,
+   "cancel": 0,
+   "amend": 0,
+   "report": 1,
+   "export": 1,
+   "import": 1,
+   "share": 1,
+   "print": 1,
+   "email": 1
+  },
+  {
+   "role": "Nursery Administrator",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "submit": 0,
+   "cancel": 0,
+   "amend": 0,
+   "report": 1,
+   "export": 1,
+   "import": 0,
+   "share": 1,
+   "print": 1,
+   "email": 1
+  },
+  {
+   "role": "Nursery Accountant",
+   "read": 1,
+   "report": 1
+  }
  ],
- "sort_field":"plan_name","sort_order":"ASC","track_changes":1
+ "sort_field": "plan_name",
+ "sort_order": "ASC",
+ "track_changes": 1
 }

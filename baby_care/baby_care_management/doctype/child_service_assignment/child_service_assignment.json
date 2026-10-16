@@ -1,22 +1,120 @@
 {
- "actions":[],"autoname":"format:SVC-{####}",
- "creation":"2024-01-01 00:00:00.000000","doctype":"DocType","engine":"InnoDB",
- "field_order":["child","service","start_date","end_date","col_break","status","notes"],
- "fields":[
-  {"fieldname":"child","fieldtype":"Link","label":"Child","options":"Child","reqd":1,"in_list_view":1},
-  {"fieldname":"service","fieldtype":"Link","label":"Service","options":"Nursery Service","reqd":1,"in_list_view":1},
-  {"fieldname":"start_date","fieldtype":"Date","label":"Start Date","reqd":1,"in_list_view":1},
-  {"fieldname":"end_date","fieldtype":"Date","label":"End Date"},
-  {"fieldname":"col_break","fieldtype":"Column Break"},
-  {"fieldname":"status","fieldtype":"Select","label":"Status",
-   "options":"Active\nInactive\nCompleted","default":"Active","in_list_view":1},
-  {"fieldname":"notes","fieldtype":"Small Text","label":"Notes"}
+ "actions": [],
+ "autoname": "format:SVC-{####}",
+ "creation": "2024-01-01 00:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "child",
+  "service",
+  "start_date",
+  "end_date",
+  "col_break",
+  "status",
+  "notes"
  ],
- "modified":"2024-01-01 00:00:00.000000","modified_by":"Administrator",
- "module":"Baby Care Management","name":"Child Service Assignment","owner":"Administrator",
- "permissions":[
-  {"read":1,"write":1,"create":1,"delete":1,"role":"Nursery Administrator"},
-  {"read":1,"role":"Nursery Receptionist"}
+ "fields": [
+  {
+   "fieldname": "child",
+   "fieldtype": "Link",
+   "label": "Child",
+   "options": "Child",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "service",
+   "fieldtype": "Link",
+   "label": "Service",
+   "options": "Nursery Service",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "start_date",
+   "fieldtype": "Date",
+   "label": "Start Date",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "end_date",
+   "fieldtype": "Date",
+   "label": "End Date"
+  },
+  {
+   "fieldname": "col_break",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "label": "Status",
+   "options": "Active\nInactive\nCompleted",
+   "default": "Active",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "notes",
+   "fieldtype": "Small Text",
+   "label": "Notes"
+  }
  ],
- "sort_field":"start_date","sort_order":"DESC","track_changes":0
+ "modified": "2024-01-01 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Baby Care Management",
+ "name": "Child Service Assignment",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "role": "System Manager",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "submit": 0,
+   "cancel": 0,
+   "amend": 0,
+   "report": 1,
+   "export": 1,
+   "import": 1,
+   "share": 1,
+   "print": 1,
+   "email": 1
+  },
+  {
+   "role": "Nursery Administrator",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "submit": 0,
+   "cancel": 0,
+   "amend": 0,
+   "report": 1,
+   "export": 1,
+   "import": 0,
+   "share": 1,
+   "print": 1,
+   "email": 1
+  },
+  {
+   "role": "Nursery Receptionist",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 0,
+   "report": 1,
+   "export": 0,
+   "print": 1,
+   "email": 0
+  },
+  {
+   "role": "Nursery Accountant",
+   "read": 1
+  }
+ ],
+ "sort_field": "start_date",
+ "sort_order": "DESC",
+ "track_changes": 0
 }

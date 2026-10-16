@@ -4,13 +4,44 @@
  "creation": "2024-01-01 00:00:00.000000",
  "doctype": "DocType",
  "engine": "InnoDB",
- "field_order": ["group_name", "min_age_months", "max_age_months", "description", "is_active"],
+ "field_order": [
+  "group_name",
+  "min_age_months",
+  "max_age_months",
+  "description",
+  "is_active"
+ ],
  "fields": [
-  {"fieldname": "group_name", "fieldtype": "Data", "label": "Age Group Name", "reqd": 1, "unique": 1},
-  {"fieldname": "min_age_months", "fieldtype": "Int", "label": "Minimum Age (Months)", "reqd": 1},
-  {"fieldname": "max_age_months", "fieldtype": "Int", "label": "Maximum Age (Months)", "reqd": 1},
-  {"fieldname": "description", "fieldtype": "Small Text", "label": "Description"},
-  {"fieldname": "is_active", "fieldtype": "Check", "label": "Is Active", "default": "1"}
+  {
+   "fieldname": "group_name",
+   "fieldtype": "Data",
+   "label": "Age Group Name",
+   "reqd": 1,
+   "unique": 1
+  },
+  {
+   "fieldname": "min_age_months",
+   "fieldtype": "Int",
+   "label": "Minimum Age (Months)",
+   "reqd": 1
+  },
+  {
+   "fieldname": "max_age_months",
+   "fieldtype": "Int",
+   "label": "Maximum Age (Months)",
+   "reqd": 1
+  },
+  {
+   "fieldname": "description",
+   "fieldtype": "Small Text",
+   "label": "Description"
+  },
+  {
+   "fieldname": "is_active",
+   "fieldtype": "Check",
+   "label": "Is Active",
+   "default": "1"
+  }
  ],
  "modified": "2024-01-01 00:00:00.000000",
  "modified_by": "Administrator",
@@ -18,9 +49,46 @@
  "name": "Age Group",
  "owner": "Administrator",
  "permissions": [
-  {"read": 1, "write": 1, "create": 1, "delete": 1, "role": "Nursery Administrator"},
-  {"read": 1, "role": "Nursery Teacher"},
-  {"read": 1, "role": "Nursery Receptionist"}
+  {
+   "role": "System Manager",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "submit": 0,
+   "cancel": 0,
+   "amend": 0,
+   "report": 1,
+   "export": 1,
+   "import": 1,
+   "share": 1,
+   "print": 1,
+   "email": 1
+  },
+  {
+   "role": "Nursery Administrator",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "submit": 0,
+   "cancel": 0,
+   "amend": 0,
+   "report": 1,
+   "export": 1,
+   "import": 0,
+   "share": 1,
+   "print": 1,
+   "email": 1
+  },
+  {
+   "role": "Nursery Teacher",
+   "read": 1
+  },
+  {
+   "role": "Nursery Receptionist",
+   "read": 1
+  }
  ],
  "sort_field": "min_age_months",
  "sort_order": "ASC",

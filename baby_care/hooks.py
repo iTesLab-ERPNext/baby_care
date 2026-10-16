@@ -53,6 +53,8 @@ doctype_js = {
 # ── Permission query conditions (teacher sees only own children) ────────────
 permission_query_conditions = {
     "Child": "baby_care.baby_care_management.utils.permissions.get_child_access_conditions",
+    "Medical Record": "baby_care.baby_care_management.utils.permissions.get_medical_record_access_conditions",
+    "Health Incident": "baby_care.baby_care_management.utils.permissions.get_medical_record_access_conditions",
 }
 
 website_route_rules = []

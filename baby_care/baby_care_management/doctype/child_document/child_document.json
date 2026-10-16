@@ -1,27 +1,144 @@
 {
- "actions":[],"autoname":"format:DOC-{####}",
- "creation":"2024-01-01 00:00:00.000000","doctype":"DocType","engine":"InnoDB",
- "field_order":["child","document_type","col_break","issue_date","expiry_date",
-  "status","file_section","attached_file","is_private","notes_section","notes"],
- "fields":[
-  {"fieldname":"child","fieldtype":"Link","label":"Child","options":"Child","reqd":1,"in_list_view":1},
-  {"fieldname":"document_type","fieldtype":"Link","label":"Document Type","options":"Document Type Config","reqd":1,"in_list_view":1},
-  {"fieldname":"col_break","fieldtype":"Column Break"},
-  {"fieldname":"issue_date","fieldtype":"Date","label":"Issue Date"},
-  {"fieldname":"expiry_date","fieldtype":"Date","label":"Expiry Date","in_list_view":1},
-  {"fieldname":"status","fieldtype":"Select","label":"Status",
-   "options":"Valid\nExpired\nMissing\nRevoked","default":"Valid","in_list_view":1},
-  {"fieldname":"file_section","fieldtype":"Section Break","label":"Document File"},
-  {"fieldname":"attached_file","fieldtype":"Attach","label":"Attached File"},
-  {"fieldname":"is_private","fieldtype":"Check","label":"Private","default":"1"},
-  {"fieldname":"notes_section","fieldtype":"Section Break","label":"Notes"},
-  {"fieldname":"notes","fieldtype":"Small Text","label":"Notes"}
+ "actions": [],
+ "autoname": "format:DOC-{####}",
+ "creation": "2024-01-01 00:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "child",
+  "document_type",
+  "col_break",
+  "issue_date",
+  "expiry_date",
+  "status",
+  "file_section",
+  "attached_file",
+  "is_private",
+  "notes_section",
+  "notes"
  ],
- "modified":"2024-01-01 00:00:00.000000","modified_by":"Administrator",
- "module":"Baby Care Management","name":"Child Document","owner":"Administrator",
- "permissions":[
-  {"read":1,"write":1,"create":1,"delete":1,"email":1,"role":"Nursery Administrator"},
-  {"read":1,"write":1,"create":1,"role":"Nursery Receptionist"}
+ "fields": [
+  {
+   "fieldname": "child",
+   "fieldtype": "Link",
+   "label": "Child",
+   "options": "Child",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "document_type",
+   "fieldtype": "Link",
+   "label": "Document Type",
+   "options": "Document Type Config",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "col_break",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "issue_date",
+   "fieldtype": "Date",
+   "label": "Issue Date"
+  },
+  {
+   "fieldname": "expiry_date",
+   "fieldtype": "Date",
+   "label": "Expiry Date",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "label": "Status",
+   "options": "Valid\nExpired\nMissing\nRevoked",
+   "default": "Valid",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "file_section",
+   "fieldtype": "Section Break",
+   "label": "Document File"
+  },
+  {
+   "fieldname": "attached_file",
+   "fieldtype": "Attach",
+   "label": "Attached File"
+  },
+  {
+   "fieldname": "is_private",
+   "fieldtype": "Check",
+   "label": "Private",
+   "default": "1"
+  },
+  {
+   "fieldname": "notes_section",
+   "fieldtype": "Section Break",
+   "label": "Notes"
+  },
+  {
+   "fieldname": "notes",
+   "fieldtype": "Small Text",
+   "label": "Notes"
+  }
  ],
- "sort_field":"expiry_date","sort_order":"ASC","track_changes":1
+ "modified": "2024-01-01 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Baby Care Management",
+ "name": "Child Document",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "role": "System Manager",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "submit": 0,
+   "cancel": 0,
+   "amend": 0,
+   "report": 1,
+   "export": 1,
+   "import": 1,
+   "share": 1,
+   "print": 1,
+   "email": 1
+  },
+  {
+   "role": "Nursery Administrator",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "submit": 0,
+   "cancel": 0,
+   "amend": 0,
+   "report": 1,
+   "export": 1,
+   "import": 0,
+   "share": 1,
+   "print": 1,
+   "email": 1
+  },
+  {
+   "role": "Nursery Receptionist",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 0,
+   "report": 1,
+   "export": 0,
+   "print": 1,
+   "email": 0
+  },
+  {
+   "role": "Nursery Teacher",
+   "read": 1
+  }
+ ],
+ "sort_field": "expiry_date",
+ "sort_order": "ASC",
+ "track_changes": 1
 }

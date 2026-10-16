@@ -4,9 +4,20 @@
  "creation": "2024-01-01 00:00:00.000000",
  "doctype": "DocType",
  "engine": "InnoDB",
- "field_order": ["status_name", "status_type", "color", "is_active"],
+ "field_order": [
+  "status_name",
+  "status_type",
+  "color",
+  "is_active"
+ ],
  "fields": [
-  {"fieldname": "status_name", "fieldtype": "Data", "label": "Status Name", "reqd": 1, "unique": 1},
+  {
+   "fieldname": "status_name",
+   "fieldtype": "Data",
+   "label": "Status Name",
+   "reqd": 1,
+   "unique": 1
+  },
   {
    "fieldname": "status_type",
    "fieldtype": "Select",
@@ -20,7 +31,12 @@
    "label": "Indicator Color",
    "options": "Green\nRed\nOrange\nBlue\nGrey"
   },
-  {"fieldname": "is_active", "fieldtype": "Check", "label": "Is Active", "default": "1"}
+  {
+   "fieldname": "is_active",
+   "fieldtype": "Check",
+   "label": "Is Active",
+   "default": "1"
+  }
  ],
  "modified": "2024-01-01 00:00:00.000000",
  "modified_by": "Administrator",
@@ -28,9 +44,46 @@
  "name": "Attendance Status",
  "owner": "Administrator",
  "permissions": [
-  {"read": 1, "write": 1, "create": 1, "delete": 1, "role": "Nursery Administrator"},
-  {"read": 1, "role": "Nursery Teacher"},
-  {"read": 1, "role": "Nursery Receptionist"}
+  {
+   "role": "System Manager",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "submit": 0,
+   "cancel": 0,
+   "amend": 0,
+   "report": 1,
+   "export": 1,
+   "import": 1,
+   "share": 1,
+   "print": 1,
+   "email": 1
+  },
+  {
+   "role": "Nursery Administrator",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "submit": 0,
+   "cancel": 0,
+   "amend": 0,
+   "report": 1,
+   "export": 1,
+   "import": 0,
+   "share": 1,
+   "print": 1,
+   "email": 1
+  },
+  {
+   "role": "Nursery Teacher",
+   "read": 1
+  },
+  {
+   "role": "Nursery Receptionist",
+   "read": 1
+  }
  ],
  "sort_field": "status_name",
  "sort_order": "ASC",

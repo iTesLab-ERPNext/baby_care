@@ -34,8 +34,17 @@
   "notify_overdue_after_days"
  ],
  "fields": [
-  {"fieldname": "general_section", "fieldtype": "Section Break", "label": "General"},
-  {"fieldname": "facility_name", "fieldtype": "Data", "label": "Facility Name", "reqd": 1},
+  {
+   "fieldname": "general_section",
+   "fieldtype": "Section Break",
+   "label": "General"
+  },
+  {
+   "fieldname": "facility_name",
+   "fieldtype": "Data",
+   "label": "Facility Name",
+   "reqd": 1
+  },
   {
    "fieldname": "facility_type",
    "fieldtype": "Select",
@@ -43,7 +52,10 @@
    "options": "Nursery\nKindergarten\nDaycare Center\nBaby Care Center\nOther",
    "reqd": 1
   },
-  {"fieldname": "col_break_1", "fieldtype": "Column Break"},
+  {
+   "fieldname": "col_break_1",
+   "fieldtype": "Column Break"
+  },
   {
    "fieldname": "default_company",
    "fieldtype": "Link",
@@ -51,8 +63,17 @@
    "options": "Company",
    "reqd": 1
   },
-  {"fieldname": "default_currency", "fieldtype": "Link", "label": "Default Currency", "options": "Currency"},
-  {"fieldname": "billing_section", "fieldtype": "Section Break", "label": "Billing & Accounting"},
+  {
+   "fieldname": "default_currency",
+   "fieldtype": "Link",
+   "label": "Default Currency",
+   "options": "Currency"
+  },
+  {
+   "fieldname": "billing_section",
+   "fieldtype": "Section Break",
+   "label": "Billing & Accounting"
+  },
   {
    "fieldname": "default_income_account",
    "fieldtype": "Link",
@@ -65,7 +86,10 @@
    "label": "Default Cost Center",
    "options": "Cost Center"
   },
-  {"fieldname": "col_break_2", "fieldtype": "Column Break"},
+  {
+   "fieldname": "col_break_2",
+   "fieldtype": "Column Break"
+  },
   {
    "fieldname": "default_payment_terms",
    "fieldtype": "Link",
@@ -84,7 +108,10 @@
    "label": "Allow Partial Payments",
    "default": "1"
   },
-  {"fieldname": "col_break_3", "fieldtype": "Column Break"},
+  {
+   "fieldname": "col_break_3",
+   "fieldtype": "Column Break"
+  },
   {
    "fieldname": "auto_generate_invoices",
    "fieldtype": "Check",
@@ -105,7 +132,11 @@
    "default": "0",
    "description": "Discount applied when a parent enrolls more than one child"
   },
-  {"fieldname": "enrollment_section", "fieldtype": "Section Break", "label": "Enrollment Rules"},
+  {
+   "fieldname": "enrollment_section",
+   "fieldtype": "Section Break",
+   "label": "Enrollment Rules"
+  },
   {
    "fieldname": "require_medical_record",
    "fieldtype": "Check",
@@ -124,7 +155,10 @@
    "label": "Require Parent ID Document",
    "default": "1"
   },
-  {"fieldname": "col_break_4", "fieldtype": "Column Break"},
+  {
+   "fieldname": "col_break_4",
+   "fieldtype": "Column Break"
+  },
   {
    "fieldname": "enforce_class_capacity",
    "fieldtype": "Check",
@@ -137,7 +171,11 @@
    "label": "Default Subscription Plan",
    "options": "Subscription Plan"
   },
-  {"fieldname": "notification_section", "fieldtype": "Section Break", "label": "Notification Thresholds"},
+  {
+   "fieldname": "notification_section",
+   "fieldtype": "Section Break",
+   "label": "Notification Thresholds"
+  },
   {
    "fieldname": "notify_subscription_expiry_days",
    "fieldtype": "Int",
@@ -165,17 +203,36 @@
  "owner": "Administrator",
  "permissions": [
   {
-   "email": 1,
-   "print": 1,
+   "role": "System Manager",
    "read": 1,
-   "role": "Nursery Administrator",
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "submit": 0,
+   "cancel": 0,
+   "amend": 0,
+   "report": 1,
+   "export": 1,
+   "import": 1,
    "share": 1,
-   "write": 1
+   "print": 1,
+   "email": 1
   },
   {
+   "role": "Nursery Administrator",
    "read": 1,
-   "role": "System Manager",
-   "write": 1
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "submit": 0,
+   "cancel": 0,
+   "amend": 0,
+   "report": 1,
+   "export": 1,
+   "import": 0,
+   "share": 1,
+   "print": 1,
+   "email": 1
   }
  ],
  "sort_field": "modified",

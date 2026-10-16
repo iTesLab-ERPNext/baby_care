@@ -1,27 +1,125 @@
 {
- "actions":[],"autoname":"field:plan_name",
- "creation":"2024-01-01 00:00:00.000000","doctype":"DocType","engine":"InnoDB",
- "title_field":"plan_name",
- "field_order":["plan_name","scope","col_break","week_type","is_active",
-  "items_section","items","notes_section","notes"],
- "fields":[
-  {"fieldname":"plan_name","fieldtype":"Data","label":"Meal Plan Name","reqd":1,"unique":1,"in_list_view":1},
-  {"fieldname":"scope","fieldtype":"Select","label":"Scope",
-   "options":"Global\nClass\nIndividual Child","reqd":1,"in_list_view":1},
-  {"fieldname":"col_break","fieldtype":"Column Break"},
-  {"fieldname":"week_type","fieldtype":"Select","label":"Week Type",
-   "options":"Weekly\nAlternating Week A\nAlternating Week B"},
-  {"fieldname":"is_active","fieldtype":"Check","label":"Is Active","default":"1","in_list_view":1},
-  {"fieldname":"items_section","fieldtype":"Section Break","label":"Menu"},
-  {"fieldname":"items","fieldtype":"Table","label":"Meal Items","options":"Meal Plan Item"},
-  {"fieldname":"notes_section","fieldtype":"Section Break","label":"Notes"},
-  {"fieldname":"notes","fieldtype":"Small Text","label":"Notes"}
+ "actions": [],
+ "autoname": "field:plan_name",
+ "creation": "2024-01-01 00:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "title_field": "plan_name",
+ "field_order": [
+  "plan_name",
+  "scope",
+  "col_break",
+  "week_type",
+  "is_active",
+  "items_section",
+  "items",
+  "notes_section",
+  "notes"
  ],
- "modified":"2024-01-01 00:00:00.000000","modified_by":"Administrator",
- "module":"Baby Care Management","name":"Meal Plan","owner":"Administrator",
- "permissions":[
-  {"read":1,"write":1,"create":1,"delete":1,"role":"Nursery Administrator"},
-  {"read":1,"role":"Nursery Teacher"}
+ "fields": [
+  {
+   "fieldname": "plan_name",
+   "fieldtype": "Data",
+   "label": "Meal Plan Name",
+   "reqd": 1,
+   "unique": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "scope",
+   "fieldtype": "Select",
+   "label": "Scope",
+   "options": "Global\nClass\nIndividual Child",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "col_break",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "week_type",
+   "fieldtype": "Select",
+   "label": "Week Type",
+   "options": "Weekly\nAlternating Week A\nAlternating Week B"
+  },
+  {
+   "fieldname": "is_active",
+   "fieldtype": "Check",
+   "label": "Is Active",
+   "default": "1",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "items_section",
+   "fieldtype": "Section Break",
+   "label": "Menu"
+  },
+  {
+   "fieldname": "items",
+   "fieldtype": "Table",
+   "label": "Meal Items",
+   "options": "Meal Plan Item"
+  },
+  {
+   "fieldname": "notes_section",
+   "fieldtype": "Section Break",
+   "label": "Notes"
+  },
+  {
+   "fieldname": "notes",
+   "fieldtype": "Small Text",
+   "label": "Notes"
+  }
  ],
- "sort_field":"plan_name","sort_order":"ASC","track_changes":1
+ "modified": "2024-01-01 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Baby Care Management",
+ "name": "Meal Plan",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "role": "System Manager",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "submit": 0,
+   "cancel": 0,
+   "amend": 0,
+   "report": 1,
+   "export": 1,
+   "import": 1,
+   "share": 1,
+   "print": 1,
+   "email": 1
+  },
+  {
+   "role": "Nursery Administrator",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "submit": 0,
+   "cancel": 0,
+   "amend": 0,
+   "report": 1,
+   "export": 1,
+   "import": 0,
+   "share": 1,
+   "print": 1,
+   "email": 1
+  },
+  {
+   "role": "Nursery Teacher",
+   "read": 1
+  },
+  {
+   "role": "Nursery Receptionist",
+   "read": 1
+  }
+ ],
+ "sort_field": "plan_name",
+ "sort_order": "ASC",
+ "track_changes": 1
 }
