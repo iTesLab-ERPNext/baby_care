@@ -1,7 +1,9 @@
 from setuptools import setup, find_packages
 
-with open("requirements.txt") as f:
-    install_requires = f.read().strip().split("\n")
+# frappe and erpnext are bench-managed; do NOT list them as pip dependencies.
+# Declaring them here causes uv to try to resolve frappe's own git-URL sub-deps
+# (e.g. pypika @ git+...) which fails. Runtime app dependency is declared via
+# required_apps in hooks.py instead.
 
 setup(
     name="baby_care",
@@ -12,5 +14,5 @@ setup(
     packages=find_packages(),
     zip_safe=False,
     include_package_data=True,
-    install_requires=install_requires,
+    install_requires=[],
 )
