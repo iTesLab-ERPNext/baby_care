@@ -43,7 +43,7 @@
    "default": "1"
   }
  ],
- "modified": "2024-01-01 00:00:00.000000",
+ "modified": "2026-10-16 19:30:00.000000",
  "modified_by": "Administrator",
  "module": "Baby Care Management",
  "name": "Age Group",
@@ -92,5 +92,6 @@
  ],
  "sort_field": "min_age_months",
  "sort_order": "ASC",
- "track_changes": 0
+ "track_changes": 0,
+ "allow_import": 1
 }

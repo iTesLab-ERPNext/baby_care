@@ -102,7 +102,7 @@
    "depends_on": "eval:doc.follow_up_required==1"
   }
  ],
- "modified": "2024-01-01 00:00:00.000000",
+ "modified": "2026-10-16 19:30:00.000000",
  "modified_by": "Administrator",
  "module": "Baby Care Management",
  "name": "Health Incident",
@@ -164,5 +164,6 @@
  ],
  "sort_field": "incident_datetime",
  "sort_order": "DESC",
- "track_changes": 1
+ "track_changes": 1,
+ "allow_import": 1
 }

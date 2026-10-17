@@ -38,7 +38,8 @@
    "label": "Child",
    "options": "Child",
    "reqd": 1,
-   "in_list_view": 1
+   "in_list_view": 1,
+   "in_standard_filter": 1
   },
   {
    "fieldname": "parent_customer",
@@ -46,7 +47,9 @@
    "label": "Parent (Customer)",
    "options": "Customer",
    "reqd": 1,
-   "in_list_view": 1
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "fetch_from": ""
   },
   {
    "fieldname": "col_break_1",
@@ -68,7 +71,9 @@
    "default": "Draft",
    "reqd": 1,
    "in_list_view": 1,
-   "in_standard_filter": 1
+   "in_standard_filter": 1,
+   "allow_on_submit": 1,
+   "read_only": 1
   },
   {
    "fieldname": "dates_section",
@@ -84,7 +89,8 @@
   {
    "fieldname": "end_date",
    "fieldtype": "Date",
-   "label": "End Date"
+   "label": "End Date",
+   "allow_on_submit": 1
   },
   {
    "fieldname": "col_break_2",
@@ -93,13 +99,16 @@
   {
    "fieldname": "next_billing_date",
    "fieldtype": "Date",
-   "label": "Next Billing Date"
+   "label": "Next Billing Date",
+   "allow_on_submit": 1,
+   "read_only": 1
   },
   {
    "fieldname": "last_invoice_date",
    "fieldtype": "Date",
    "label": "Last Invoice Date",
-   "read_only": 1
+   "read_only": 1,
+   "allow_on_submit": 1
   },
   {
    "fieldname": "pricing_section",
@@ -109,7 +118,7 @@
   {
    "fieldname": "monthly_amount",
    "fieldtype": "Currency",
-   "label": "Plan Base Amount",
+   "label": "Plan Price (per billing period)",
    "read_only": 1
   },
   {
@@ -121,7 +130,7 @@
   {
    "fieldname": "final_amount",
    "fieldtype": "Currency",
-   "label": "Final Amount",
+   "label": "Amount per Billing Period",
    "read_only": 1
   },
   {
@@ -140,7 +149,7 @@
    "fieldname": "additional_services",
    "fieldtype": "Table MultiSelect",
    "label": "Additional Services",
-   "options": "Nursery Service"
+   "options": "Child Subscription Service"
   },
   {
    "fieldname": "invoices_section",
@@ -151,7 +160,8 @@
    "fieldname": "invoices",
    "fieldtype": "Table",
    "label": "Invoices",
-   "options": "Child Subscription Invoice"
+   "options": "Child Subscription Invoice",
+   "allow_on_submit": 1
   },
   {
    "fieldname": "notes_section",
@@ -162,15 +172,17 @@
    "fieldname": "cancellation_reason",
    "fieldtype": "Small Text",
    "label": "Cancellation Reason",
-   "depends_on": "eval:doc.status=='Cancelled'"
+   "depends_on": "eval:doc.status=='Cancelled'",
+   "allow_on_submit": 1
   },
   {
    "fieldname": "notes",
    "fieldtype": "Small Text",
-   "label": "Notes"
+   "label": "Notes",
+   "allow_on_submit": 1
   }
  ],
- "modified": "2024-01-01 00:00:00.000000",
+ "modified": "2026-10-16 19:30:00.000000",
  "modified_by": "Administrator",
  "module": "Baby Care Management",
  "name": "Child Subscription",
@@ -178,13 +190,14 @@
  "permissions": [
   {
    "role": "System Manager",
+   "permlevel": 0,
    "read": 1,
    "write": 1,
    "create": 1,
    "delete": 1,
-   "submit": 0,
-   "cancel": 0,
-   "amend": 0,
+   "submit": 1,
+   "cancel": 1,
+   "amend": 1,
    "report": 1,
    "export": 1,
    "import": 1,
@@ -194,38 +207,58 @@
   },
   {
    "role": "Nursery Administrator",
+   "permlevel": 0,
    "read": 1,
    "write": 1,
    "create": 1,
    "delete": 1,
-   "submit": 0,
-   "cancel": 0,
-   "amend": 0,
+   "submit": 1,
+   "cancel": 1,
+   "amend": 1,
    "report": 1,
    "export": 1,
-   "import": 0,
+   "import": 1,
    "share": 1,
    "print": 1,
    "email": 1
   },
   {
    "role": "Nursery Accountant",
+   "permlevel": 0,
    "read": 1,
    "write": 1,
    "create": 1,
    "delete": 0,
+   "submit": 1,
+   "cancel": 1,
+   "amend": 1,
    "report": 1,
    "export": 1,
+   "import": 0,
+   "share": 0,
    "print": 1,
-   "email": 1,
-   "share": 0
+   "email": 1
   },
   {
    "role": "Nursery Receptionist",
-   "read": 1
+   "permlevel": 0,
+   "read": 1,
+   "write": 0,
+   "create": 0,
+   "delete": 0,
+   "submit": 0,
+   "cancel": 0,
+   "amend": 0,
+   "report": 1,
+   "export": 0,
+   "import": 0,
+   "share": 0,
+   "print": 1,
+   "email": 0
   }
  ],
  "sort_field": "start_date",
  "sort_order": "DESC",
- "track_changes": 1
+ "track_changes": 1,
+ "allow_import": 1
 }

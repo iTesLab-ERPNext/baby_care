@@ -1,155 +1,156 @@
 """
-baby_care.baby_care_management.utils.scheduler
-Scheduled jobs: daily tasks & monthly invoice generation.
+Daily jobs:
+* subscription lifecycle (pending → active, expiry, auto-renew)
+* invoice generation for due subscriptions
+* reminders: expiring subscriptions, expiring / missing documents,
+  overdue nursery invoices, upcoming birthdays
+Each reminder is de-duplicated per recipient and document.
 """
 import frappe
-from frappe.utils import today, getdate, add_days, nowdate
+from frappe import _
+from frappe.utils import add_days, cint, formatdate, getdate, today
+
+from baby_care.baby_care_management.utils.notifications import notify_roles
+
+ADMIN = ["Nursery Administrator"]
+FINANCE = ["Nursery Administrator", "Nursery Accountant"]
+
+
+def _settings():
+    return frappe.get_single("Nursery Settings")
+
+
+def _safe(fn, *args):
+    try:
+        fn(*args)
+        frappe.db.commit()
+    except Exception:
+        frappe.db.rollback()
+        frappe.log_error(title=f"Baby Care: {fn.__name__} failed")
 
 
 def daily_tasks():
-    """Run every day: subscription expiry alerts, document expiry alerts, overdue invoices."""
-    _check_subscription_expiry()
-    _check_document_expiry()
-    _update_overdue_invoices()
-    _check_upcoming_birthdays()
+    s = _settings()
+    for job in (update_subscription_lifecycle, remind_expiring_subscriptions, update_document_status,
+                remind_expiring_documents, remind_missing_documents, remind_overdue_invoices, remind_birthdays):
+        _safe(job, s)
 
 
-def generate_monthly_invoices():
-    """Run monthly: auto-generate invoices for active subscriptions."""
-    settings = frappe.get_single("Nursery Settings")
-    if not settings.auto_generate_invoices:
-        return
+# ── subscriptions ────────────────────────────────────────────────────────────
+def update_subscription_lifecycle(s=None):
+    for name in frappe.get_all("Child Subscription", filters={"docstatus": 1, "status": "Pending", "start_date": ("<=", today())}, pluck="name"):
+        doc = frappe.get_doc("Child Subscription", name)
+        doc.status = "Active"
+        doc.save(ignore_permissions=True)
 
-    today_day = getdate(today()).day
-    gen_day = int(settings.invoice_generation_day or 1)
-    if today_day != gen_day:
-        return
-
-    active_subs = frappe.get_all(
+    ended = frappe.get_all(
         "Child Subscription",
-        filters={"status": "Active", "docstatus": 1, "next_billing_date": ("<=", today())},
-        fields=["name"],
+        filters={"docstatus": 1, "status": ("in", ["Active", "Suspended"]), "end_date": ("<", today())},
+        fields=["name", "subscription_plan"],
     )
-    for sub in active_subs:
+    for row in ended:
+        doc = frappe.get_doc("Child Subscription", row.name)
+        renewal = frappe.db.get_value("Subscription Plan", row.subscription_plan, "renewal_type")
+        if renewal == "Auto-Renew" and doc.status == "Active":
+            doc.flags.ignore_permissions = True
+            doc.renew()
+        else:
+            doc.status = "Expired"
+            doc.save(ignore_permissions=True)
+            notify_roles(ADMIN, _("Subscription expired — {0}").format(doc.child), _("{0} ended on {1}.").format(doc.name, doc.end_date), doc.doctype, doc.name)
+
+
+def generate_due_invoices(s=None):
+    s = s or _settings()
+    if not cint(s.auto_generate_invoices):
+        return
+    from baby_care.baby_care_management.utils.billing import create_subscription_invoice
+
+    horizon = add_days(today(), cint(s.invoice_generation_day))
+    due = frappe.get_all(
+        "Child Subscription",
+        filters={"docstatus": 1, "status": "Active", "next_billing_date": ("<=", horizon)},
+        fields=["name", "next_billing_date", "end_date"],
+    )
+    for sub in due:
+        if sub.end_date and getdate(sub.next_billing_date) > getdate(sub.end_date):
+            continue
         try:
-            from baby_care.baby_care_management.utils.billing import create_subscription_invoice
             create_subscription_invoice(sub.name)
+            frappe.db.commit()
         except Exception:
-            frappe.log_error(
-                frappe.get_traceback(),
-                f"Failed to generate invoice for {sub.name}",
-            )
+            frappe.db.rollback()
+            frappe.log_error(title=f"Baby Care: invoice generation failed for {sub.name}")
 
 
-def _check_subscription_expiry():
-    settings = frappe.get_single("Nursery Settings")
-    days_ahead = int(settings.notify_subscription_expiry_days or 14)
-    threshold = add_days(today(), days_ahead)
-
-    expiring = frappe.get_all(
+def remind_expiring_subscriptions(s):
+    horizon = add_days(today(), cint(s.notify_subscription_expiry_days) or 14)
+    for sub in frappe.get_all(
         "Child Subscription",
-        filters={
-            "status": "Active",
-            "docstatus": 1,
-            "end_date": ("between", [today(), threshold]),
-        },
+        filters={"docstatus": 1, "status": "Active", "end_date": ("between", [today(), horizon])},
         fields=["name", "child", "end_date"],
-    )
-    for sub in expiring:
-        _send_notification(
-            subject=f"Subscription expiring soon — {sub.child}",
-            message=f"Subscription {sub.name} for child {sub.child} expires on {sub.end_date}.",
-            doctype="Child Subscription",
-            docname=sub.name,
-        )
+    ):
+        notify_roles(ADMIN, _("Subscription expiring soon — {0}").format(sub.child),
+                     _("{0} expires on {1}.").format(sub.name, formatdate(sub.end_date)), "Child Subscription", sub.name)
 
 
-def _check_document_expiry():
-    settings = frappe.get_single("Nursery Settings")
-    days_ahead = int(settings.notify_document_expiry_days or 30)
-    threshold = add_days(today(), days_ahead)
+# ── documents ────────────────────────────────────────────────────────────────
+def update_document_status(s=None):
+    for name in frappe.get_all("Child Document", filters={"status": "Valid", "expiry_date": ("<", today())}, pluck="name"):
+        frappe.db.set_value("Child Document", name, "status", "Expired")
 
-    expiring_docs = frappe.get_all(
+
+def remind_expiring_documents(s):
+    horizon = add_days(today(), cint(s.notify_document_expiry_days) or 30)
+    for d in frappe.get_all(
         "Child Document",
-        filters={
-            "status": "Valid",
-            "expiry_date": ("between", [today(), threshold]),
-        },
-        fields=["name", "child", "document_type", "expiry_date"],
-    )
-    for doc in expiring_docs:
-        _send_notification(
-            subject=f"Document expiring — {doc.child}",
-            message=(
-                f"Document '{doc.document_type}' for {doc.child} "
-                f"expires on {doc.expiry_date}."
-            ),
-            doctype="Child Document",
-            docname=doc.name,
-        )
+        filters={"status": "Valid", "expiry_date": ("between", [today(), horizon])},
+        fields=["name", "child", "parent_customer", "document_type", "expiry_date"],
+    ):
+        owner = d.child or d.parent_customer
+        notify_roles(ADMIN, _("Document expiring — {0}").format(owner),
+                     _("{0} expires on {1}.").format(d.document_type, formatdate(d.expiry_date)), "Child Document", d.name)
 
 
-def _update_overdue_invoices():
-    settings = frappe.get_single("Nursery Settings")
-    overdue_days = int(settings.notify_overdue_after_days or 7)
-    threshold = add_days(today(), -overdue_days)
+def remind_missing_documents(s):
+    from baby_care.baby_care_management.doctype.child_document.child_document import get_missing_mandatory_documents
 
-    overdue_sis = frappe.get_all(
+    missing = {}
+    for child, doc_type in get_missing_mandatory_documents():
+        missing.setdefault(child, []).append(doc_type)
+    for child, types in missing.items():
+        notify_roles(ADMIN, _("Missing documents — {0}").format(child), ", ".join(types), "Child", child, dedupe_days=7)
+
+
+# ── finance ──────────────────────────────────────────────────────────────────
+def remind_overdue_invoices(s):
+    threshold = add_days(today(), -(cint(s.notify_overdue_after_days) or 0))
+    for si in frappe.get_all(
         "Sales Invoice",
-        filters={
-            "docstatus": 1,
-            "outstanding_amount": (">", 0),
-            "due_date": ("<", threshold),
-            "status": ("!=", "Paid"),
-        },
-        fields=["name"],
-    )
-    for si in overdue_sis:
-        frappe.db.set_value("Sales Invoice", si.name, "status", "Overdue", update_modified=False)
+        filters={"docstatus": 1, "outstanding_amount": (">", 0), "due_date": ("<", threshold), "baby_care_subscription": ("is", "set")},
+        fields=["name", "customer", "outstanding_amount", "due_date"],
+    ):
+        notify_roles(FINANCE, _("Overdue invoice — {0}").format(si.customer),
+                     _("{0}: {1} outstanding since {2}.").format(si.name, si.outstanding_amount, formatdate(si.due_date)),
+                     "Sales Invoice", si.name, dedupe_days=7)
 
 
-def _check_upcoming_birthdays():
-    from frappe.utils import formatdate
-    import datetime
-    today_date = getdate(today())
-    window = add_days(today(), 7)
-    children = frappe.get_all(
-        "Child",
-        filters={"enrollment_status": "Active"},
-        fields=["name", "full_name", "date_of_birth"],
-    )
-    for child in children:
-        if not child.date_of_birth:
-            continue
-        dob = getdate(child.date_of_birth)
-        # birthday this year
+# ── birthdays ────────────────────────────────────────────────────────────────
+def remind_birthdays(s=None, days=7):
+    t = getdate(today())
+    for c in frappe.get_all("Child", filters={"enrollment_status": "Active", "date_of_birth": ("is", "set")}, fields=["name", "full_name", "date_of_birth"]):
+        dob = getdate(c.date_of_birth)
         try:
-            birthday_this_year = dob.replace(year=today_date.year)
-        except ValueError:
+            bday = dob.replace(year=t.year)
+        except ValueError:  # 29 February
+            bday = dob.replace(year=t.year, day=28)
+        if bday < t:
             continue
-        if today_date <= birthday_this_year <= getdate(window):
-            _send_notification(
-                subject=f"Upcoming birthday — {child.full_name}",
-                message=f"{child.full_name}'s birthday is on {formatdate(birthday_this_year)}.",
-                doctype="Child",
-                docname=child.name,
-            )
+        if (bday - t).days <= days:
+            notify_roles(ADMIN + ["Nursery Teacher"], _("Upcoming birthday — {0}").format(c.full_name),
+                         _("{0} turns {1} on {2}.").format(c.full_name, t.year - dob.year, formatdate(bday)), "Child", c.name, dedupe_days=30)
 
 
-def _send_notification(subject, message, doctype, docname):
-    admins = frappe.get_all(
-        "Has Role",
-        filters={"role": "Nursery Administrator", "parenttype": "User"},
-        fields=["parent"],
-    )
-    for admin in admins:
-        if not frappe.db.get_value("User", admin.parent, "enabled"):
-            continue
-        notification = frappe.new_doc("Notification Log")
-        notification.subject = subject
-        notification.email_content = message
-        notification.document_type = doctype
-        notification.document_name = docname
-        notification.for_user = admin.parent
-        notification.type = "Alert"
-        notification.insert(ignore_permissions=True)
+# Backwards compatibility with the old hook name
+def generate_monthly_invoices():
+    generate_due_invoices()

@@ -92,7 +92,7 @@
    "label": "Schedule / Activity Notes"
   }
  ],
- "modified": "2024-01-01 00:00:00.000000",
+ "modified": "2026-10-16 19:30:00.000000",
  "modified_by": "Administrator",
  "module": "Baby Care Management",
  "name": "Nursery Class",
@@ -141,5 +141,6 @@
  ],
  "sort_field": "class_name",
  "sort_order": "ASC",
- "track_changes": 1
+ "track_changes": 1,
+ "allow_import": 1
 }

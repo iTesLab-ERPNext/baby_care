@@ -28,7 +28,8 @@
    "label": "Child",
    "options": "Child",
    "reqd": 1,
-   "in_list_view": 1
+   "in_list_view": 1,
+   "in_standard_filter": 1
   },
   {
    "fieldname": "attendance_date",
@@ -36,7 +37,8 @@
    "label": "Date",
    "reqd": 1,
    "default": "Today",
-   "in_list_view": 1
+   "in_list_view": 1,
+   "in_standard_filter": 1
   },
   {
    "fieldname": "col_break",
@@ -48,14 +50,16 @@
    "label": "Status",
    "options": "Attendance Status",
    "reqd": 1,
-   "in_list_view": 1
+   "in_list_view": 1,
+   "in_standard_filter": 1
   },
   {
    "fieldname": "nursery_class",
    "fieldtype": "Link",
    "label": "Class",
    "options": "Nursery Class",
-   "in_list_view": 1
+   "in_list_view": 1,
+   "in_standard_filter": 1
   },
   {
    "fieldname": "time_section",
@@ -81,7 +85,8 @@
    "fieldtype": "Link",
    "label": "Recorded By",
    "options": "User",
-   "default": "__user"
+   "default": "__user",
+   "read_only": 1
   },
   {
    "fieldname": "pickup_person",
@@ -104,7 +109,7 @@
    "label": "Notes"
   }
  ],
- "modified": "2024-01-01 00:00:00.000000",
+ "modified": "2026-10-16 19:30:00.000000",
  "modified_by": "Administrator",
  "module": "Baby Care Management",
  "name": "Child Attendance",
@@ -165,5 +170,6 @@
  ],
  "sort_field": "attendance_date",
  "sort_order": "DESC",
- "track_changes": 1
+ "track_changes": 1,
+ "allow_import": 1
 }

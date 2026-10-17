@@ -1,2 +1,2 @@
-frappe
-erpnext
+# No extra Python dependencies. frappe and erpnext are provided by the bench
+# and must NOT be listed here (bench would try to pip-install them).

@@ -1,0 +1,59 @@
+{
+ "doctype": "DocType",
+ "name": "Child Subscription Service",
+ "module": "Baby Care Management",
+ "istable": 1,
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "creation": "2026-10-16 18:00:00.000000",
+ "owner": "Administrator",
+ "modified_by": "Administrator",
+ "field_order": [
+  "service",
+  "rate",
+  "qty",
+  "amount",
+  "billing_frequency"
+ ],
+ "fields": [
+  {
+   "fieldname": "service",
+   "fieldtype": "Link",
+   "label": "Service",
+   "options": "Nursery Service",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "rate",
+   "fieldtype": "Currency",
+   "label": "Rate",
+   "in_list_view": 1,
+   "fetch_from": "service.price",
+   "fetch_if_empty": 1
+  },
+  {
+   "fieldname": "qty",
+   "fieldtype": "Float",
+   "label": "Qty",
+   "default": "1",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "amount",
+   "fieldtype": "Currency",
+   "label": "Amount",
+   "read_only": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "billing_frequency",
+   "fieldtype": "Data",
+   "label": "Billing Frequency",
+   "read_only": 1,
+   "fetch_from": "service.billing_frequency"
+  }
+ ],
+ "permissions": [],
+ "modified": "2026-10-16 18:00:00.000000"
+}

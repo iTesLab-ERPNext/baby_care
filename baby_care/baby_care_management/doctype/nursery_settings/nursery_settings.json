@@ -19,6 +19,8 @@
   "allow_partial_payment",
   "col_break_3",
   "auto_generate_invoices",
+  "auto_submit_invoices",
+  "default_item_group",
   "invoice_generation_day",
   "multi_child_discount_percent",
   "enrollment_section",
@@ -31,7 +33,11 @@
   "notification_section",
   "notify_subscription_expiry_days",
   "notify_document_expiry_days",
-  "notify_overdue_after_days"
+  "notify_overdue_after_days",
+  "operations_section",
+  "enable_transportation",
+  "enforce_pickup_verification",
+  "allow_multiple_teachers"
  ],
  "fields": [
   {
@@ -119,11 +125,23 @@
    "default": "1"
   },
   {
+   "fieldname": "auto_submit_invoices",
+   "fieldtype": "Check",
+   "label": "Submit Generated Invoices",
+   "default": "1"
+  },
+  {
+   "fieldname": "default_item_group",
+   "fieldtype": "Link",
+   "label": "Item Group for Nursery Items",
+   "options": "Item Group"
+  },
+  {
    "fieldname": "invoice_generation_day",
    "fieldtype": "Int",
-   "label": "Invoice Generation Day of Month",
-   "default": "1",
-   "description": "Day of month on which monthly invoices are auto-generated (1-28)"
+   "label": "Invoice Lead Time (days before billing date)",
+   "default": "0",
+   "description": "Invoices are generated daily for subscriptions whose next billing date is within this many days."
   },
   {
    "fieldname": "multi_child_discount_percent",
@@ -193,10 +211,33 @@
    "fieldtype": "Int",
    "label": "Mark Invoice Overdue After (days)",
    "default": "7"
+  },
+  {
+   "fieldname": "operations_section",
+   "fieldtype": "Section Break",
+   "label": "Operations"
+  },
+  {
+   "fieldname": "enable_transportation",
+   "fieldtype": "Check",
+   "label": "Enable Transportation",
+   "default": "1"
+  },
+  {
+   "fieldname": "enforce_pickup_verification",
+   "fieldtype": "Check",
+   "label": "Enforce Authorized Pickup Verification",
+   "default": "1"
+  },
+  {
+   "fieldname": "allow_multiple_teachers",
+   "fieldtype": "Check",
+   "label": "Allow Additional Teachers per Child (via class)",
+   "default": "1"
   }
  ],
  "issingle": 1,
- "modified": "2024-01-01 00:00:00.000000",
+ "modified": "2026-10-16 19:30:00.000000",
  "modified_by": "Administrator",
  "module": "Baby Care Management",
  "name": "Nursery Settings",
@@ -213,7 +254,7 @@
    "amend": 0,
    "report": 1,
    "export": 1,
-   "import": 1,
+   "import": 0,
    "share": 1,
    "print": 1,
    "email": 1
