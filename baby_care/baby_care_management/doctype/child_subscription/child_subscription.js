@@ -5,7 +5,11 @@ frappe.ui.form.on("Child Subscription", {
 			const parents = frm.__child_parents || [];
 			return parents.length ? { filters: { name: ["in", parents] } } : {};
 		});
-		frm.set_query("service", "additional_services", () => ({ filters: { is_active: 1, is_optional: 1 } }));
+	},
+	onload(frm) {
+		if (frm.fields_dict.additional_services && frm.fields_dict.additional_services.grid) {
+			frm.set_query("service", "additional_services", () => ({ filters: { is_active: 1, is_optional: 1 } }));
+		}
 	},
 	child(frm) {
 		if (!frm.doc.child) return;

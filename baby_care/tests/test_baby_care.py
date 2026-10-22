@@ -250,3 +250,29 @@ class TestPermissions(BabyCareTestBase):
         self.assertTrue(frappe.has_permission("Medical Record", "read"))
         self.assertFalse(frappe.has_permission("Sales Invoice", "read"))
         self.assertFalse(frappe.has_permission("Child Subscription", "read"))
+
+
+class TestSchemaAndDesk(FrappeTestCase):
+    """Regression guards for issues that only showed up in the browser."""
+
+    def test_table_fields_are_valid(self):
+        for dt in frappe.get_all("DocType", {"module": "Baby Care Management", "istable": 0}, pluck="name"):
+            for df in frappe.get_meta(dt).fields:
+                if df.fieldtype not in ("Table", "Table MultiSelect"):
+                    continue
+                child = frappe.get_meta(df.options)
+                self.assertTrue(child.istable, f"{dt}.{df.fieldname} must point to a child table")
+                if df.fieldtype == "Table MultiSelect":
+                    links = [f for f in child.fields if f.fieldtype == "Link"]
+                    self.assertEqual(len(links), 1, f"{dt}.{df.fieldname}: Table MultiSelect needs exactly one Link column")
+                    self.assertEqual(len(child.fields), 1, f"{dt}.{df.fieldname}: use Table for multi-column rows (grid needed by set_query)")
+
+    def test_count_widgets_have_no_currency(self):
+        from baby_care.baby_care_management.setup.desk import MONEY_CARDS, MONEY_CHARTS, NUMBER_CARDS, _charts
+
+        for label, _m, _c in NUMBER_CARDS:
+            cur = frappe.db.get_value("Number Card", label, "currency")
+            self.assertEqual(bool(cur), label in MONEY_CARDS, label)
+        for chart in _charts():
+            cur = frappe.db.get_value("Dashboard Chart", chart["chart_name"], "currency")
+            self.assertEqual(bool(cur), chart["chart_name"] in MONEY_CHARTS, chart["chart_name"])

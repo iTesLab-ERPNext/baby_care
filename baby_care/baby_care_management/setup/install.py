@@ -47,6 +47,11 @@ ERPNEXT_PERMISSIONS = [
     ("Payment Entry", "Nursery Administrator", ["read", "write", "create", "submit", "cancel", "amend", "report", "export", "print", "email"]),
     ("Payment Entry", "Nursery Accountant", ["read", "write", "create", "submit", "cancel", "amend", "report", "export", "print", "email"]),
 ]
+# Opening a Customer (parent) loads its receivable account and link titles;
+# ERPNext only needs the light "select" right for that, not read access.
+for _dt in ("Account", "Customer Group", "Territory", "Company"):
+    for _role in ("Nursery Administrator", "Nursery Receptionist", "Nursery Accountant"):
+        ERPNEXT_PERMISSIONS.append((_dt, _role, ["select"]))
 
 
 def after_install():
@@ -127,8 +132,8 @@ def ensure_erpnext_permissions():
         )
         if has_rule:
             continue
-        add_permission(doctype, role, 0)
-        for ptype in ptypes:
+        add_permission(doctype, role, 0, ptype=ptypes[0])
+        for ptype in ptypes[1:]:
             update_permission_property(doctype, role, 0, ptype, 1, validate=False)
 
 

@@ -207,8 +207,32 @@ def sync_desk():
         ensure_number_card(label, method, color)
     for chart in _charts():
         ensure_chart(chart)
+    fix_currencies()
     ensure_dashboard()
     build_workspace()
+
+
+MONEY_CARDS = {"Monthly Revenue", "Quarterly Revenue", "Outstanding Payments"}
+MONEY_CHARTS = {"Nursery Revenue"}
+
+
+def _company_currency():
+    company = frappe.db.get_single_value("Nursery Settings", "default_company") or frappe.defaults.get_global_default("company")
+    return frappe.get_cached_value("Company", company, "default_currency") if company else None
+
+
+def fix_currencies():
+    """Frappe fills the empty `currency` link of new Number Cards / Dashboard
+    Charts from the site default, which makes count widgets render as money.
+    Counts get no currency; money widgets get the company currency."""
+    currency = _company_currency()
+    for label, _method, _color in NUMBER_CARDS:
+        if frappe.db.exists("Number Card", label):
+            frappe.db.set_value("Number Card", label, "currency", currency if label in MONEY_CARDS else None, update_modified=False)
+    for chart in _charts():
+        name = chart["chart_name"]
+        if frappe.db.exists("Dashboard Chart", name):
+            frappe.db.set_value("Dashboard Chart", name, "currency", currency if name in MONEY_CHARTS else None, update_modified=False)
 
 
 def remove_desk():

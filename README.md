@@ -4,8 +4,8 @@ Nursery, daycare, kindergarten and baby-care centre management for **ERPNext v15
 Parents are ERPNext **Customers**, billing uses ERPNext **Sales Invoice** and **Payment Entry**,
 and every rule that varies between facilities is configuration, not code.
 
-Version 1.1.0 is tested end-to-end on Frappe v15 + ERPNext v15: fresh install, upgrade from
-1.0, uninstall, 22 automated tests and a 44-check role-permission audit, all on real records.
+Version 1.1.1 is tested end-to-end on Frappe v15 + ERPNext v15: fresh install, upgrade from
+1.0, uninstall, 24 automated tests, a 44-check role-permission audit and a browser test that opens every form for every role.
 
 ---
 
@@ -100,7 +100,8 @@ How it is enforced, all on the server:
   They never grant access. If an administrator later gives teachers access to medical records,
   teachers still see only their own children's records.
 * Install adds the nursery roles to ERPNext's Customer, Sales Invoice and Payment Entry, and only
-  when the role has no rule there yet. Give accountants ERPNext's **Accounts User** role as well,
+  when the role has no rule there yet, plus the light *select* right on Account, Customer Group,
+  Territory and Company so parents open without errors. Give accountants ERPNext's **Accounts User** role as well,
   and receptionists **Sales User**, so the linked ERPNext masters open for them.
 
 ---
@@ -143,9 +144,9 @@ bench --site <site> set-config allow_tests true
 bench --site <site> run-tests --module baby_care.tests.test_baby_care
 ```
 
-22 integration tests cover workspace integrity and desk rendering, number cards, invoice amounts and
+24 integration tests cover workspace integrity and desk rendering, number cards, invoice amounts and
 family discount, duplicate-period protection, payment status sync, overlap and parent checks,
-suspend/resume/renew, the business rules above, scheduler de-duplication and expiry, and role access.
+suspend/resume/renew, the business rules above, scheduler de-duplication and expiry, role access, and schema guards (valid table fields, no currency on count widgets).
 
 ## Languages
 
