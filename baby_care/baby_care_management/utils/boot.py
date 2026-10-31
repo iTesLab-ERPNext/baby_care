@@ -15,3 +15,12 @@ def boot_session(bootinfo):
         }
     except Exception:
         bootinfo.nursery_settings = {}
+
+    # Navbar "Baby Care" menu (same sections as the workspace, filtered by permissions)
+    try:
+        from baby_care.baby_care_management.api.navigation import get_menu
+
+        bootinfo.baby_care_menu = get_menu()
+    except Exception:
+        frappe.log_error(title="Baby Care: navbar menu could not be built")
+        bootinfo.baby_care_menu = None

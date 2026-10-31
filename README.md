@@ -4,8 +4,8 @@ Nursery, daycare, kindergarten and baby-care centre management for **ERPNext v15
 Parents are ERPNext **Customers**, billing uses ERPNext **Sales Invoice** and **Payment Entry**,
 and every rule that varies between facilities is configuration, not code.
 
-Version 1.1.1 is tested end-to-end on Frappe v15 + ERPNext v15: fresh install, upgrade from
-1.0, uninstall, 24 automated tests, a 44-check role-permission audit and a browser test that opens every form for every role.
+Version 1.3.0 is tested end-to-end on Frappe v15 + ERPNext v15: fresh install, upgrade from
+1.0, uninstall, 26 automated tests, a 44-check role-permission audit and a browser test that opens every form for every role.
 
 ---
 
@@ -57,6 +57,32 @@ The top of the page shows 8 live number cards and 4 charts, followed by 8 shortc
 
 The workspace is rebuilt on every `migrate`. Each link is checked against the database first, so a
 missing DocType, report or page never becomes a dead link. Links a user cannot open are hidden by Frappe.
+
+### Navbar menu
+
+A **Baby Care ▾** button next to the logo in the top bar opens the same sections and links as the
+workspace, available on every desk page:
+
+* each section expands and collapses; *Expand all / Collapse all*; open sections are remembered
+  per browser, and the section of the page you are on opens automatically;
+* a filter box narrows the links as you type (Enter opens the first match);
+* the current page is highlighted; Ctrl/⌘/middle-click opens a link in a new tab; Esc or a click
+  outside closes the panel; on phones it opens full-width.
+
+### Sidebar menu
+
+The same sections also appear in the left desk sidebar, nested under **Baby Care Management**:
+
+* the chevron on the *Baby Care Management* item shows or hides the whole tree;
+* each section expands and collapses on its own;
+* both choices are remembered per browser; entering a Baby Care page opens the tree (unless you
+  collapsed it yourself) and the section of the current page;
+* the current page is highlighted, long names are shortened with a tooltip, and the tree survives
+  Frappe rebuilding the sidebar.
+
+Both menus are built on the server at login from the workspace definition and filtered by the
+user's permissions, so they never list a page the user cannot open. Users without a Baby Care role
+see neither.
 
 ---
 
@@ -144,7 +170,7 @@ bench --site <site> set-config allow_tests true
 bench --site <site> run-tests --module baby_care.tests.test_baby_care
 ```
 
-24 integration tests cover workspace integrity and desk rendering, number cards, invoice amounts and
+26 integration tests cover workspace integrity and desk rendering, number cards, invoice amounts and
 family discount, duplicate-period protection, payment status sync, overlap and parent checks,
 suspend/resume/renew, the business rules above, scheduler de-duplication and expiry, role access, and schema guards (valid table fields, no currency on count widgets).
 

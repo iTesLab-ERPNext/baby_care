@@ -5,7 +5,6 @@ frappe.query_reports["Parent Account Statement"] = {
 			label: __("Parent"),
 			fieldtype: "Link",
 			options: "Customer",
-			reqd: 1,
 		},
 		{
 			fieldname: "from_date",

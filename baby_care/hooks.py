@@ -95,5 +95,5 @@ has_permission = {
 }
 
 website_route_rules = []
-app_include_css = []
-app_include_js = []
+app_include_css = ["/assets/baby_care/css/baby_care_navbar.css"]
+app_include_js = ["/assets/baby_care/js/baby_care_navbar.js"]

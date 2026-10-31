@@ -276,3 +276,29 @@ class TestSchemaAndDesk(FrappeTestCase):
         for chart in _charts():
             cur = frappe.db.get_value("Dashboard Chart", chart["chart_name"], "currency")
             self.assertEqual(bool(cur), chart["chart_name"] in MONEY_CHARTS, chart["chart_name"])
+
+
+class TestNavbarMenu(BabyCareTestBase):
+    def _routes(self, user):
+        from baby_care.baby_care_management.api.navigation import get_menu
+
+        menu = get_menu(user)
+        return menu, [i["route"] for s in (menu or {}).get("sections", []) for i in s["items"]]
+
+    def test_admin_menu_matches_workspace(self):
+        from baby_care.baby_care_management.setup.desk import SECTIONS
+
+        menu, routes = self._routes("Administrator")
+        self.assertEqual([s["label"] for s in menu["sections"]], [t for t, _ in SECTIONS])
+        self.assertIn("/app/child", routes)
+        self.assertIn("/app/query-report/Revenue Report", routes)
+        self.assertIn("/app/dashboard-view/Baby Care Dashboard", routes)
+
+    def test_menu_follows_permissions(self):
+        teacher = _user("ut-nav-teacher@bc.test", ["Nursery Teacher"])
+        _menu, routes = self._routes(teacher)
+        self.assertIn("/app/child-attendance", routes)
+        for hidden in ("/app/sales-invoice", "/app/medical-record", "/app/payment-entry", "/app/permission-manager"):
+            self.assertNotIn(hidden, routes)
+        outsider = _user("ut-nav-none@bc.test", ["Blogger"])
+        self.assertIsNone(self._routes(outsider)[0])
