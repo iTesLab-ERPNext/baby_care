@@ -4,7 +4,7 @@ Nursery, daycare, kindergarten and baby-care centre management for **ERPNext v15
 Parents are ERPNext **Customers**, billing uses ERPNext **Sales Invoice** and **Payment Entry**,
 and every rule that varies between facilities is configuration, not code.
 
-Version 1.3.0 is tested end-to-end on Frappe v15 + ERPNext v15: fresh install, upgrade from
+Version 1.4.0 is tested end-to-end on Frappe v15 + ERPNext v15: fresh install, upgrade from
 1.0, uninstall, 26 automated tests, a 44-check role-permission audit and a browser test that opens every form for every role.
 
 ---
@@ -69,7 +69,19 @@ workspace, available on every desk page:
 * the current page is highlighted; Ctrl/⌘/middle-click opens a link in a new tab; Esc or a click
   outside closes the panel; on phones it opens full-width.
 
-### Sidebar menu
+### Main sidebar group
+
+A **BABY CARE** group sits at the top of the main desk sidebar, above PUBLIC, styled like
+Frappe's own groups. Its 9 items (Dashboard, Parents & Children, Subscriptions & Billing, Health &
+Documents, Services & Activities, Staff & Attendance, Reports, Configuration, Data Management) each
+have an icon and open to show their pages:
+
+* click an item or its arrow to open or close it; click the **BABY CARE** title to fold the group;
+* open items and the folded state are remembered per browser; the item holding the current page
+  opens automatically and the page is highlighted;
+* hidden while you edit workspaces, and re-attached whenever Frappe rebuilds the sidebar.
+
+### Nested sidebar menu
 
 The same sections also appear in the left desk sidebar, nested under **Baby Care Management**:
 
@@ -80,9 +92,9 @@ The same sections also appear in the left desk sidebar, nested under **Baby Care
 * the current page is highlighted, long names are shortened with a tooltip, and the tree survives
   Frappe rebuilding the sidebar.
 
-Both menus are built on the server at login from the workspace definition and filtered by the
+All three menus are built on the server at login from the workspace definition and filtered by the
 user's permissions, so they never list a page the user cannot open. Users without a Baby Care role
-see neither.
+see none of them.
 
 ---
 

@@ -2,6 +2,7 @@
 // (same sections as the workspace, filtered by the user's permissions on the server):
 //   1. "Baby Care ▾" dropdown in the navbar
 //   2. collapsible tree under "Baby Care Management" in the workspace sidebar
+//   3. top-level "Baby Care" group in the main sidebar (next to PUBLIC)
 (function () {
 	const WORKSPACE_TITLE = "Baby Care Management";
 	const ICON = (name, size = "sm") => `<svg class="icon icon-${size}"><use href="#icon-${name}"></use></svg>`;
@@ -258,23 +259,143 @@
 		});
 	}
 
+	// ── 3. top-level "Baby Care" group in the main sidebar ───────────────
+	// Same markup/classes as Frappe's own "PUBLIC" group, so it looks native.
+	const SECTION_ICONS = {
+		"Dashboard": "dashboard",
+		"Parents & Children": "users",
+		"Subscriptions & Billing": "accounting",
+		"Health & Documents": "healthcare",
+		"Services & Activities": "support",
+		"Staff & Attendance": "hr",
+		"Reports": "chart",
+		"Configuration": "setting",
+		"Data Management": "customization",
+	};
+	const mainCollapsed = storage("baby_care_main_collapsed");
+	const mainSections = storage("baby_care_main_open_sections");
+
+	function renderMainGroup(m) {
+		const here = current();
+		const saved = mainSections.get([]);
+		const groupCollapsed = mainCollapsed.get(false);
+		const sections = m.sections
+			.map((s, idx) => {
+				const containsHere = s.items.some((it) => path(it.route) === here);
+				const expanded = saved.includes(s.label) || containsHere;
+				const id = `bc-main-sec-${idx}`;
+				const links = s.items
+					.map(
+						(it) => `
+					<div class="sidebar-item-container bc-main-leaf">
+						<div class="desk-sidebar-item standard-sidebar-item${path(it.route) === here ? " selected" : ""}">
+							<a class="item-anchor bc-main-link" href="${href(it.route)}" data-route="${esc(it.route)}" title="${esc(__(it.label))}">
+								<span class="sidebar-item-label">${esc(__(it.label))}</span>
+							</a>
+						</div>
+					</div>`
+					)
+					.join("");
+				return `
+				<div class="sidebar-item-container bc-main-item${expanded ? " expanded" : ""}" data-bc-section="${esc(s.label)}">
+					<div class="desk-sidebar-item standard-sidebar-item">
+						<a class="item-anchor bc-main-head" href="#" role="button" aria-expanded="${expanded}" aria-controls="${id}" title="${esc(__(s.label))}">
+							<span class="sidebar-item-icon">${frappe.utils.icon(SECTION_ICONS[s.label] || "folder-normal", "md")}</span>
+							<span class="sidebar-item-label">${esc(__(s.label))}</span>
+						</a>
+						<div class="sidebar-item-control">
+							<button type="button" class="btn-reset bc-main-toggle" aria-expanded="${expanded}" aria-controls="${id}" tabindex="-1">${ICON("down", "sm")}</button>
+						</div>
+					</div>
+					<div class="sidebar-child-item nested-container bc-main-children" id="${id}" role="group">${links}</div>
+				</div>`;
+			})
+			.join("");
+		return `
+			<div class="standard-sidebar-section nested-container bc-main${groupCollapsed ? " bc-main-collapsed" : ""}" data-title="Baby Care">
+				<button class="btn-reset standard-sidebar-label bc-main-label" aria-expanded="${!groupCollapsed}" aria-label="${esc(__("Toggle Section: {0}", [__("Baby Care")]))}">
+					<span>${frappe.utils.icon(groupCollapsed ? "es-line-right-chevron" : "es-line-down", "xs")}</span>
+					<span class="section-title">${esc(__("Baby Care"))}</span>
+				</button>
+				<div class="bc-main-items">${sections}</div>
+			</div>`;
+	}
+
+	function attachMainGroup() {
+		const m = menu();
+		if (!m || !m.sections || !m.sections.length) return;
+		const $sidebar = $(".desk-sidebar").first();
+		if (!$sidebar.length || $sidebar.children(".bc-main").length) return;
+		const $group = $(renderMainGroup(m));
+		const $first = $sidebar.children(".standard-sidebar-section").first();
+		$first.length ? $group.insertBefore($first) : $group.appendTo($sidebar);
+
+		const setSection = ($sec, open) => {
+			$sec.toggleClass("expanded", open);
+			$sec.find("> .desk-sidebar-item [aria-expanded]").attr("aria-expanded", open);
+			mainSections.set($group.find(".bc-main-item.expanded").map((_, el) => $(el).attr("data-bc-section")).get());
+		};
+		$group.on("click", ".bc-main-label", (e) => {
+			e.preventDefault();
+			const collapsed = !$group.hasClass("bc-main-collapsed");
+			$group.toggleClass("bc-main-collapsed", collapsed);
+			$group.find(".bc-main-label").attr("aria-expanded", !collapsed)
+				.find("span").first().html(frappe.utils.icon(collapsed ? "es-line-right-chevron" : "es-line-down", "xs"));
+			mainCollapsed.set(collapsed);
+		});
+		$group.on("click", ".bc-main-head, .bc-main-toggle", function (e) {
+			e.preventDefault();
+			e.stopPropagation();
+			const $sec = $(this).closest(".bc-main-item");
+			setSection($sec, !$sec.hasClass("expanded"));
+		});
+		$group.on("click", ".bc-main-link", function (e) {
+			followLink(e, $(this));
+		});
+		refreshMainGroup();
+	}
+
+	function refreshMainGroup() {
+		const here = current();
+		$(".bc-main .bc-main-link").each(function () {
+			const active = path($(this).attr("data-route")) === here;
+			$(this).closest(".desk-sidebar-item").toggleClass("selected", active);
+			if (active) {
+				const $sec = $(this).closest(".bc-main-item");
+				if (!$sec.hasClass("expanded")) {
+					$sec.addClass("expanded").find("> .desk-sidebar-item [aria-expanded]").attr("aria-expanded", true);
+				}
+			}
+		});
+	}
+
 	let scheduled = false;
 	function scheduleAttach() {
 		if (scheduled) return;
 		scheduled = true;
 		requestAnimationFrame(() => {
 			scheduled = false;
+			attachMainGroup();
 			attachSidebar();
+			// Frappe may re-render the sidebar after the route event: re-sync highlights
+			const here = current();
+			if (here !== scheduleAttach.lastPath) {
+				scheduleAttach.lastPath = here;
+				refreshMainGroup();
+				refreshSidebar();
+			}
 		});
 	}
 
 	function init() {
 		if (!menu()) return;
 		buildNavbar(); // idempotent
+		attachMainGroup(); // idempotent
 		attachSidebar(); // idempotent
 		if (init.wired) return;
 		init.wired = true;
 		onRouteChange(refreshSidebar);
+		onRouteChange(refreshMainGroup);
 		// Frappe rebuilds the workspace sidebar (page switches, edit mode…): re-attach.
 		new MutationObserver(scheduleAttach).observe(document.body, { childList: true, subtree: true });
 	}
