@@ -35,7 +35,7 @@ fixtures = [
         "dt": "Role",
         "filters": [["name", "in", [
             "Nursery Administrator", "Nursery Accountant",
-            "Nursery Teacher", "Nursery Medical Staff", "Nursery Receptionist",
+            "Nursery Teacher", "Nursery Medical Staff", "Nursery Receptionist", "Nursery Parent",
         ]]],
     },
 ]
@@ -95,5 +95,10 @@ has_permission = {
 }
 
 website_route_rules = []
+
+# Parent API documentation (static page generated from baby_care/api/spec.py)
+website_redirects = [
+    {"source": "/parent-api", "target": "/assets/baby_care/parent-api/index.html"},
+]
 app_include_css = ["/assets/baby_care/css/baby_care_navbar.css"]
 app_include_js = ["/assets/baby_care/js/baby_care_navbar.js"]

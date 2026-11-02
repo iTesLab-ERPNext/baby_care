@@ -4,8 +4,8 @@ Nursery, daycare, kindergarten and baby-care centre management for **ERPNext v15
 Parents are ERPNext **Customers**, billing uses ERPNext **Sales Invoice** and **Payment Entry**,
 and every rule that varies between facilities is configuration, not code.
 
-Version 1.4.0 is tested end-to-end on Frappe v15 + ERPNext v15: fresh install, upgrade from
-1.0, uninstall, 26 automated tests, a 44-check role-permission audit and a browser test that opens every form for every role.
+Version 1.5.0 is tested end-to-end on Frappe v15 + ERPNext v15: fresh install, upgrade from
+1.0, uninstall, 34 automated tests, a 44-check role-permission audit and a browser test that opens every form for every role.
 
 ---
 
@@ -98,6 +98,47 @@ see none of them.
 
 ---
 
+## Parent API (mobile app / parent portal)
+
+A read-only REST API for parents. Documentation with a built-in *Try it* console:
+**`https://<your-site>/parent-api`**. Machine-readable OpenAPI 3 (Swagger UI, Postman, Insomnia):
+**`/api/method/baby_care.api.v1.openapi`**.
+
+| Endpoint | Method | What it returns |
+|---|---|---|
+| `login` | POST | session (`sid`), CSRF token, parent profiles, children |
+| `logout` | POST | ends the session |
+| `me` | GET | parent profile and children |
+| `children` | GET | my children with class, teacher, status |
+| `child` | GET | full profile: teachers, emergency contacts, pickups, allergies, vaccinations, subscription |
+| `child_tracking` | GET | daily follow-up: arrival/departure/pickup, today's menu, incidents, 30-day attendance rate, vaccinations, document alerts |
+| `child_attendance` | GET | attendance history + summary (date range, paging) |
+| `child_meals` | GET | menu of the day (child's own plan or the nursery menu) |
+| `child_incidents` | GET | health incidents |
+| `child_documents` | GET | documents on file and missing mandatory documents |
+| `subscriptions` | GET | subscriptions of my children |
+| `invoices` / `invoice` | GET | invoices (`status` = all, unpaid, overdue, paid) and one invoice with lines and payments |
+| `payments` | GET | payments with the invoices they settle |
+| `balance` | GET | invoiced, paid, outstanding, overdue, next due date, per child |
+
+All URLs are `/api/method/baby_care.api.v1.<endpoint>`; results are wrapped in `message`.
+
+**Giving a parent access:** open the parent (Customer) → **Baby Care → Create Parent Login**. This
+creates a website user (no desk access) with the **Nursery Parent** role, adds it to the Customer's
+*Portal Users*, and can send the welcome e-mail so the parent sets a password.
+
+**Security:**
+* a parent only ever sees the children and accounts of the Customers they are linked to; another
+  family's child or invoice answers `404`, so records cannot be probed;
+* everything except `login` / `logout` is GET-only; POSTs with a session need the CSRF token;
+* `login` is limited to 10 attempts per 5 minutes per IP;
+* staff accounts that are not linked to a parent cannot log in through the API;
+* server-to-server clients can use Frappe API keys: `Authorization: token <api_key>:<api_secret>`;
+* use HTTPS in production. For a web app on another domain, allow it with `allow_cors` in
+  `site_config.json`; native mobile apps need nothing extra.
+
+---
+
 ## Reports
 
 All reports read through `frappe.get_list`, so they apply the same row-level rules as list views.
@@ -182,7 +223,7 @@ bench --site <site> set-config allow_tests true
 bench --site <site> run-tests --module baby_care.tests.test_baby_care
 ```
 
-26 integration tests cover workspace integrity and desk rendering, number cards, invoice amounts and
+34 integration tests cover workspace integrity and desk rendering, number cards, invoice amounts and
 family discount, duplicate-period protection, payment status sync, overlap and parent checks,
 suspend/resume/renew, the business rules above, scheduler de-duplication and expiry, role access, and schema guards (valid table fields, no currency on count widgets).
 

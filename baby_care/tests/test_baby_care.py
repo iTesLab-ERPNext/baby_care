@@ -302,3 +302,100 @@ class TestNavbarMenu(BabyCareTestBase):
             self.assertNotIn(hidden, routes)
         outsider = _user("ut-nav-none@bc.test", ["Blogger"])
         self.assertIsNone(self._routes(outsider)[0])
+
+
+class TestParentAPI(BabyCareTestBase):
+    """Parent API called as a real parent user (portal user of one family)."""
+
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        from baby_care.baby_care_management.api.parents import create_parent_user
+
+        frappe.set_user("Administrator")
+        cls.sara = frappe.db.get_value("Customer", {"customer_name": ("like", "Sara%[TEST]")}, "name")
+        cls.parent = create_parent_user(cls.sara, "ut-parent@bc.test", send_welcome_email=0)["user"]
+        cls.outsider = _user("ut-outsider@bc.test", ["Nursery Teacher"])
+
+    def setUp(self):
+        frappe.set_user(self.parent)
+
+    def test_parent_role_and_link(self):
+        frappe.set_user("Administrator")
+        self.assertIn("Nursery Parent", frappe.get_roles(self.parent))
+        self.assertEqual(frappe.db.get_value("User", self.parent, "user_type"), "Website User")
+        self.assertIn(self.parent, frappe.get_all("Portal User", {"parent": self.sara}, pluck="user"))
+
+    def test_children_scoped_to_family(self):
+        from baby_care.api import v1
+
+        names = {c.full_name.split()[0] for c in v1.children()}
+        self.assertEqual(names, {"Adam", "Lina"})
+
+    def test_other_family_is_not_found(self):
+        from baby_care.api import v1
+
+        for endpoint in (v1.child, v1.child_tracking, v1.child_attendance, v1.child_meals, v1.child_incidents, v1.child_documents):
+            with self.assertRaises(frappe.DoesNotExistError):
+                endpoint(child=self.kids["Omar"])
+        other_invoice = frappe.get_all("Sales Invoice", {"customer": ("!=", self.sara), "docstatus": 1}, pluck="name", limit=1)
+        if other_invoice:
+            with self.assertRaises(frappe.DoesNotExistError):
+                v1.invoice(other_invoice[0])
+
+    def test_tracking_and_billing(self):
+        from baby_care.api import v1
+
+        t = v1.child_tracking(child=self.kids["Adam"])
+        self.assertIn("attendance_30_days", t)
+        self.assertTrue(t["meals"] is not None)
+        inv = v1.invoices()
+        self.assertEqual(len(inv), 2)
+        bal = v1.balance()
+        self.assertAlmostEqual(bal["invoiced"], sum(i.grand_total for i in inv), places=2)
+        self.assertEqual(len(v1.subscriptions()), 2)
+
+    def test_validation(self):
+        from baby_care.api import v1
+
+        with self.assertRaises(frappe.ValidationError):
+            v1.invoices(status="bogus")
+        with self.assertRaises(frappe.ValidationError):
+            v1.child_attendance(child=self.kids["Adam"], from_date="not-a-date")
+
+    def test_unlinked_user_refused(self):
+        from baby_care.api import v1
+
+        frappe.set_user(self.outsider)
+        with self.assertRaises(frappe.PermissionError):
+            v1.children()
+
+    def test_openapi_matches_endpoints(self):
+        from baby_care.api import spec, v1
+
+        doc = spec.openapi()
+        self.assertEqual(len(doc["paths"]), len(spec.ENDPOINTS))
+        for name, *_ in spec.ENDPOINTS:
+            self.assertTrue(callable(getattr(v1, name, None)), f"documented endpoint {name} is not implemented")
+
+
+class TestClearAfterPayment(FrappeTestCase):
+    """Clearing demo data must work after a user recorded a payment on a demo invoice."""
+
+    def test_clear_with_paid_demo_invoice(self):
+        from erpnext.accounts.doctype.payment_entry.payment_entry import get_payment_entry
+
+        frappe.set_user("Administrator")
+        if not seed._registry():
+            seed.install_test_data()
+        si = next((n for dt, n in seed._registry() if dt == "Sales Invoice" and frappe.db.get_value("Sales Invoice", n, "outstanding_amount")), None)
+        if not si:
+            self.skipTest("no unpaid demo invoice")
+        pe = get_payment_entry("Sales Invoice", si)
+        pe.reference_no, pe.reference_date = "UT", today()
+        pe.insert(ignore_permissions=True)
+        pe.submit()
+        seed.clear_test_data()
+        self.assertFalse(frappe.db.exists("Sales Invoice", si))
+        self.assertFalse(frappe.db.exists("Payment Entry", pe.name))
+        self.assertEqual(frappe.db.count("Customer", {"customer_name": ("like", "%[TEST]")}), 0)

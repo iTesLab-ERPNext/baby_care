@@ -288,12 +288,22 @@ def _clear_tracked():
     for doctype, name in reversed(rows):
         if not frappe.db.exists("DocType", doctype) or not frappe.db.exists(doctype, name):
             continue
+        if doctype == "Sales Invoice":
+            # payments recorded on demo invoices (by users trying the app) go too;
+            # cancelling them updates the invoice, so load it only afterwards
+            for pe in set(frappe.get_all("Payment Entry Reference", filters={"reference_name": name, "docstatus": ("<", 2)}, pluck="parent")):
+                pe_doc = frappe.get_doc("Payment Entry", pe)
+                if pe_doc.docstatus == 1:
+                    pe_doc.flags.ignore_permissions = True
+                    pe_doc.flags.ignore_links = True
+                    pe_doc.cancel()
+                frappe.delete_doc("Payment Entry", pe, ignore_permissions=True, force=True)
         doc = frappe.get_doc(doctype, name)
         if doc.docstatus == 1:
-            if doctype == "Sales Invoice":
-                for pe in frappe.get_all("Payment Entry Reference", filters={"reference_name": name, "docstatus": 1}, pluck="parent"):
-                    frappe.get_doc("Payment Entry", pe).cancel()
             doc.flags.ignore_permissions = True
+            # demo invoices and subscriptions reference each other; the whole
+            # tracked set is being removed, so skip the back-link check
+            doc.flags.ignore_links = True
             doc.cancel()
         frappe.delete_doc(doctype, name, ignore_permissions=True, force=True, ignore_on_trash=False)
         removed += 1

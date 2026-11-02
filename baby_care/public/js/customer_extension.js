@@ -12,6 +12,27 @@ frappe.ui.form.on("Customer", {
 		if (frappe.model.can_create("Child"))
 			frm.add_custom_button(__("Register Child"), () => frappe.new_doc("Child", { parents: [{ parent_customer: frm.doc.name, is_primary: 1 }] }), group);
 		frm.add_custom_button(__("Account Statement"), () => frappe.set_route("query-report", "Parent Account Statement", { customer: frm.doc.name }), group);
+		if (frm.has_perm("write")) {
+			frm.add_custom_button(__("Create Parent Login"), () => {
+				frappe.prompt(
+					[
+						{ fieldname: "email", fieldtype: "Data", options: "Email", label: __("Parent e-mail"), reqd: 1, default: frm.doc.email_id || "" },
+						{ fieldname: "send_welcome_email", fieldtype: "Check", label: __("Send welcome e-mail (lets the parent set a password)"), default: 1 },
+					],
+					(v) =>
+						frappe
+							.call({ method: "baby_care.baby_care_management.api.parents.create_parent_user", args: { customer: frm.doc.name, ...v }, freeze: true })
+							.then((r) => {
+								const m = r.message;
+								frappe.show_alert({ message: m.created ? __("Parent login {0} created", [m.user]) : __("{0} linked to this parent", [m.user]), indicator: "green" });
+								frm.reload_doc();
+							}),
+					__("Parent login for the mobile app / Parent API"),
+					__("Create")
+				);
+			}, group);
+		}
+		frm.add_custom_button(__("Parent API docs"), () => window.open("/parent-api", "_blank"), group);
 
 		frappe.call("baby_care.baby_care_management.utils.billing.get_parent_statement", { customer: frm.doc.name }).then((r) => {
 			const s = r.message;

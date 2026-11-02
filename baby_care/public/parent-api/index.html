@@ -1,0 +1,238 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Baby Care — Parent API</title>
+<link rel="icon" href="/assets/baby_care/images/baby_care_logo.svg">
+<style>
+:root{--bg:#f7f8fa;--card:#fff;--text:#1f2328;--muted:#5d6670;--border:#e3e6ea;--code:#f1f3f5;--accent:#2490ef;
+  --get:#0b7a3e;--get-bg:#e3f6ea;--post:#9a5b00;--post-bg:#fff1d9;--err:#c62828;--ok:#0b7a3e;--shadow:0 1px 2px rgba(0,0,0,.04)}
+@media (prefers-color-scheme:dark){:root{--bg:#121417;--card:#1b1e22;--text:#e6e8eb;--muted:#9aa3ad;--border:#2c3137;--code:#23272d;
+  --accent:#5aa9f5;--get:#5fd38d;--get-bg:#16301f;--post:#f0b357;--post-bg:#33270f;--err:#ff7b7b;--ok:#5fd38d;--shadow:none}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font:14px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Inter,sans-serif}
+a{color:var(--accent)}
+code,pre,.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12.5px}
+header{background:var(--card);border-bottom:1px solid var(--border);padding:14px 20px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;position:sticky;top:0;z-index:5}
+header img{width:30px;height:30px;border-radius:7px}
+header h1{font-size:17px;margin:0}
+header .ver{color:var(--muted);font-size:12px;border:1px solid var(--border);border-radius:99px;padding:1px 8px}
+header .spacer{flex:1}
+header a.btn{font-size:13px}
+.layout{display:grid;grid-template-columns:240px minmax(0,1fr);gap:24px;max-width:1180px;margin:0 auto;padding:20px}
+.layout>*{min-width:0}
+nav a{overflow-wrap:anywhere}
+nav{position:sticky;top:76px;align-self:start;max-height:calc(100vh - 96px);overflow:auto}
+nav h4{margin:14px 0 4px;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+nav a{display:flex;gap:8px;align-items:center;padding:4px 6px;border-radius:6px;color:var(--text);text-decoration:none}
+nav a:hover{background:var(--code)}
+.badge{display:inline-block;min-width:40px;text-align:center;font:600 10.5px/18px ui-monospace,monospace;border-radius:4px;padding:0 5px}
+.GET{color:var(--get);background:var(--get-bg)}.POST{color:var(--post);background:var(--post-bg)}
+.card{background:var(--card);border:1px solid var(--border);border-radius:10px;box-shadow:var(--shadow);padding:18px 20px;margin-bottom:16px}
+.intro p{margin:6px 0}
+.auth{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.auth input{flex:1;min-width:160px}
+input,select{font:inherit;color:var(--text);background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:6px 9px}
+input:focus,select:focus,button:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+button{font:inherit;cursor:pointer;border:1px solid var(--border);background:var(--card);color:var(--text);border-radius:6px;padding:6px 12px}
+button.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.status{font-size:13px;color:var(--muted)}
+.status.ok{color:var(--ok)}.status.err{color:var(--err)}
+h2.tag{font-size:13px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:26px 0 10px}
+.ep-head{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.ep-head .path{font-weight:600;word-break:break-all}
+.ep-head .sum{color:var(--muted)}
+.ep-head .lock{margin-left:auto;font-size:12px;color:var(--muted)}
+.desc{margin:8px 0 10px}
+table{width:100%;border-collapse:collapse;font-size:13px;margin:6px 0 12px}
+th,td{text-align:left;padding:6px 8px;border-bottom:1px solid var(--border);vertical-align:top}
+th{font-size:11.5px;color:var(--muted);font-weight:600}
+td.req{color:var(--err);font-size:11px}
+pre{background:var(--code);border-radius:8px;padding:10px 12px;overflow:auto;margin:6px 0;max-height:360px}
+details summary{cursor:pointer;color:var(--muted);font-size:13px;margin:6px 0}
+.try{border-top:1px dashed var(--border);margin-top:10px;padding-top:10px}
+.try .row{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:4px 0}
+.try label{min-width:110px;font-size:12.5px;color:var(--muted)}
+.try .out{display:none}
+.copy{float:right;font-size:11px;padding:2px 8px}
+@media (max-width:820px){.layout{grid-template-columns:minmax(0,1fr);padding:12px}nav{position:static;max-height:none;display:flex;flex-wrap:wrap;gap:4px 10px}nav h4{width:100%}.try label{min-width:0;width:100%}.try .row input{flex:1 1 100%}table{display:block;overflow-x:auto}}
+</style>
+</head>
+<body>
+<header>
+  <img src="/assets/baby_care/images/baby_care_logo.svg" alt="">
+  <h1>Baby Care — Parent API</h1><span class="ver" id="ver">v1</span>
+  <span class="spacer"></span>
+  <a class="btn" id="openapi-link" href="/api/method/baby_care.api.v1.openapi" target="_blank" rel="noopener">OpenAPI JSON</a>
+</header>
+<div class="layout">
+  <nav id="nav" aria-label="Endpoints"></nav>
+  <main>
+    <section class="card intro">
+      <p id="intro">Loading…</p>
+      <p><b>Base URL:</b> <code id="base"></code> · every response is JSON and wraps the result in <code>message</code>.</p>
+      <p><b>Errors:</b> <code>401</code> wrong e-mail or password · <code>403</code> not logged in, or account not linked to a parent ·
+        <code>404</code> not found or not your child · <code>417</code> invalid parameter · <code>429</code> too many login attempts.
+        Error bodies contain <code>exc_type</code> and a readable <code>_server_messages</code>.</p>
+      <p><b>Import:</b> load the OpenAPI JSON into Swagger UI, Postman or Insomnia to generate a client.</p>
+    </section>
+    <section class="card">
+      <b>Try it</b> — log in as a parent to call the endpoints from this page
+      <div class="auth" style="margin-top:8px">
+        <input id="usr" type="email" placeholder="parent e-mail" autocomplete="username">
+        <input id="pwd" type="password" placeholder="password" autocomplete="current-password">
+        <button class="primary" id="btn-login">Log in</button>
+        <button id="btn-logout">Log out</button>
+        <span class="status" id="auth-status">Not logged in</span>
+      </div>
+    </section>
+    <div id="endpoints"></div>
+  </main>
+</div>
+<script>
+(function () {
+  const origin = window.location.origin;
+  const SPEC_URL = "/api/method/baby_care.api.v1.openapi";
+  let csrf = null;
+  const $ = (s, r = document) => r.querySelector(s);
+  const esc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  const pretty = (o) => JSON.stringify(o, null, 2);
+  $("#base").textContent = origin;
+
+  function serverMessage(body) {
+    let text = "";
+    try {
+      text = JSON.parse(body._server_messages || "[]").map((m) => JSON.parse(m).message).join(" ");
+    } catch (e) { /* not a Frappe error body */ }
+    if (!text && typeof body.message === "string") text = body.message;
+    return text.replace(/<[^>]+>/g, "");
+  }
+
+  async function call(method, path, params) {
+    const opts = { method, credentials: "same-origin", headers: { Accept: "application/json" } };
+    let url = path;
+    if (method === "GET") {
+      const q = new URLSearchParams(Object.entries(params || {}).filter(([, v]) => v !== "" && v != null));
+      if ([...q].length) url += "?" + q;
+    } else {
+      opts.headers["Content-Type"] = "application/json";
+      if (csrf) opts.headers["X-Frappe-CSRF-Token"] = csrf;
+      opts.body = JSON.stringify(params || {});
+    }
+    const t0 = performance.now();
+    const res = await fetch(url, opts);
+    let body; try { body = await res.json(); } catch (e) { body = {}; }
+    return { status: res.status, ok: res.ok, ms: Math.round(performance.now() - t0), body };
+  }
+
+  function curl(method, path, params) {
+    const full = origin + path;
+    if (method === "GET") {
+      const q = Object.entries(params).map(([k, v]) => `${k}=${encodeURIComponent(v)}`).join("&");
+      return `curl -b cookies.txt "${full}${q ? "?" + q : ""}"`;
+    }
+    const data = JSON.stringify(params);
+    return `curl -c cookies.txt -b cookies.txt -X POST "${full}" \\\n  -H "Content-Type: application/json"` +
+      (path.endsWith("login") ? "" : ` \\\n  -H "X-Frappe-CSRF-Token: <csrf_token from login>"`) +
+      (params && Object.keys(params).length ? ` \\\n  -d '${data}'` : "");
+  }
+
+  function render(spec) {
+    $("#ver").textContent = "v" + spec.info.version;
+    $("#intro").innerHTML = esc(spec.info.description).replace(/\*\*(.+?)\*\*/g, "<b>$1</b>").replace(/`([^`]+)`/g, "<code>$1</code>").replace(/\n\n/g, "</p><p>");
+    const groups = {};
+    Object.entries(spec.paths).forEach(([path, ops]) => {
+      Object.entries(ops).forEach(([m, op]) => (groups[op.tags[0]] = groups[op.tags[0]] || []).push({ path, method: m.toUpperCase(), op }));
+    });
+    let nav = "", html = "";
+    Object.entries(groups).forEach(([tag, eps]) => {
+      nav += `<h4>${esc(tag)}</h4>`;
+      html += `<h2 class="tag">${esc(tag)}</h2>`;
+      eps.forEach(({ path, method, op }) => {
+        const id = "ep-" + op.operationId;
+        nav += `<a href="#${id}"><span class="badge ${method}">${method}</span>${esc(op.operationId)}</a>`;
+        const params = op.parameters || Object.entries(((op.requestBody || {}).content || {})["application/json"]?.schema.properties || {})
+          .map(([name, p]) => ({ name, required: (op.requestBody.content["application/json"].schema.required || []).includes(name), description: p.description, schema: { type: p.type }, example: p.example }));
+        const example = Object.fromEntries(params.filter((p) => p.required).map((p) => [p.name, p.example]));
+        const resp = op.responses["200"].content["application/json"].example;
+        html += `
+        <section class="card" id="${id}">
+          <div class="ep-head"><span class="badge ${method}">${method}</span><span class="path mono">${esc(path)}</span>
+            <span class="sum">${esc(op.summary)}</span><span class="lock">${op.security && !op.security.length ? "public" : "🔒 parent login"}</span></div>
+          <p class="desc">${esc(op.description).replace(/`([^`]+)`/g, "<code>$1</code>")}</p>
+          ${params.length ? `<table><thead><tr><th>Parameter</th><th>Type</th><th></th><th>Description</th><th>Example</th></tr></thead><tbody>${
+            params.map((p) => `<tr><td class="mono">${esc(p.name)}</td><td>${esc(p.schema.type)}</td><td class="req">${p.required ? "required" : ""}</td><td>${esc(p.description).replace(/`([^`]+)`/g, "<code>$1</code>")}</td><td class="mono">${esc(p.example)}</td></tr>`).join("")
+          }</tbody></table>` : `<p class="status">No parameters.</p>`}
+          <details><summary>Example request (curl)</summary><pre><button class="copy" type="button">Copy</button><code>${esc(curl(method, path, example))}</code></pre></details>
+          <details><summary>Example response</summary><pre><code>${esc(pretty({ message: resp }))}</code></pre></details>
+          <div class="try" data-path="${esc(path)}" data-method="${method}">
+            ${params.map((p) => `<div class="row"><label for="${id}-${p.name}">${esc(p.name)}${p.required ? " *" : ""}</label><input id="${id}-${p.name}" data-param="${esc(p.name)}" type="${p.name === "pwd" ? "password" : "text"}" value="${p.name === "pwd" || p.name === "usr" ? "" : esc(p.example ?? "")}" placeholder="${esc(p.description)}"></div>`).join("")}
+            <div class="row"><button class="primary btn-try" type="button">Send</button><span class="status res-status"></span></div>
+            <pre class="out"><code></code></pre>
+          </div>
+        </section>`;
+      });
+    });
+    $("#nav").innerHTML = nav;
+    $("#endpoints").innerHTML = html;
+  }
+
+  document.addEventListener("click", async (e) => {
+    const copy = e.target.closest(".copy");
+    if (copy) {
+      try { await navigator.clipboard.writeText(copy.nextElementSibling.textContent); copy.textContent = "Copied"; setTimeout(() => (copy.textContent = "Copy"), 1200); } catch (err) { /* clipboard blocked */ }
+      return;
+    }
+    const btn = e.target.closest(".btn-try");
+    if (!btn) return;
+    const box = btn.closest(".try");
+    const params = {};
+    box.querySelectorAll("[data-param]").forEach((i) => (params[i.dataset.param] = i.value.trim()));
+    const st = box.querySelector(".res-status"), out = box.querySelector(".out");
+    st.className = "status res-status"; st.textContent = "…";
+    try {
+      const r = await call(box.dataset.method, box.dataset.path, params);
+      if (box.dataset.path.endsWith(".login") && r.ok) setAuth(r.body.message);
+      if (box.dataset.path.endsWith(".logout") && r.ok) setAuth(null);
+      st.className = "status res-status " + (r.ok ? "ok" : "err");
+      st.textContent = `${r.status} · ${r.ms} ms` + (r.ok ? "" : " · " + (serverMessage(r.body) || r.body.exc_type || ""));
+      out.style.display = "block";
+      out.querySelector("code").textContent = pretty(r.body);
+    } catch (err) {
+      st.className = "status res-status err"; st.textContent = String(err);
+    }
+  });
+
+  function setAuth(m) {
+    csrf = m ? m.csrf_token : null;
+    $("#auth-status").className = "status " + (m ? "ok" : "");
+    $("#auth-status").textContent = m ? `Logged in as ${m.full_name || m.user} · ${m.children.length} child(ren)` : "Not logged in";
+    if (m && m.children[0]) document.querySelectorAll('[data-param="child"]').forEach((i) => (i.value = m.children[0].child));
+  }
+
+  $("#btn-login").addEventListener("click", async () => {
+    const st = $("#auth-status");
+    st.className = "status"; st.textContent = "…";
+    const r = await call("POST", "/api/method/baby_care.api.v1.login", { usr: $("#usr").value.trim(), pwd: $("#pwd").value });
+    if (r.ok) setAuth(r.body.message);
+    else { st.className = "status err"; st.textContent = `${r.status} · ${serverMessage(r.body) || r.body.exc_type || "Login failed"}`; }
+  });
+  $("#pwd").addEventListener("keydown", (e) => e.key === "Enter" && $("#btn-login").click());
+  $("#btn-logout").addEventListener("click", async () => {
+    await call("POST", "/api/method/baby_care.api.v1.logout", {});
+    setAuth(null);
+  });
+
+  fetch(SPEC_URL, { credentials: "same-origin" })
+    .then((r) => r.json())
+    .then(async (spec) => {
+      render(spec);
+      const me = await call("GET", "/api/method/baby_care.api.v1.me", {});
+      if (me.ok) setAuth(me.body.message);
+    })
+    .catch((err) => ($("#intro").textContent = "Could not load the API description: " + err));
+})();
+</script>
+</body>
+</html>

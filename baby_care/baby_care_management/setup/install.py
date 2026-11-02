@@ -102,10 +102,14 @@ def _quiet(fn, *args, **kwargs):
         pass
 
 
+# Parents use the website / Parent API only: no desk access.
+PORTAL_ROLES = ["Nursery Parent"]
+
+
 def ensure_roles():
-    for role in ROLES:
+    for role in ROLES + PORTAL_ROLES:
         if not frappe.db.exists("Role", role):
-            frappe.get_doc({"doctype": "Role", "role_name": role, "desk_access": 1}).insert(ignore_permissions=True)
+            frappe.get_doc({"doctype": "Role", "role_name": role, "desk_access": 0 if role in PORTAL_ROLES else 1}).insert(ignore_permissions=True)
 
 
 def ensure_custom_fields():

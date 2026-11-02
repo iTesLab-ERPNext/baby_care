@@ -124,6 +124,7 @@ SHORTCUTS = [
     ("Medical Records", "Medical Record", "DocType"),
     ("Sales Invoices", "Sales Invoice", "DocType"),
     ("Data Management", "baby-care-data", "Page"),
+    ("Parent API", "/parent-api", "URL"),
 ]
 
 D, R, P = "DocType", "Report", "Page"
@@ -308,6 +309,8 @@ def _target_exists(link_to, link_type):
         return bool(frappe.db.exists("Page", link_to))
     if link_type == "Dashboard":
         return bool(frappe.db.exists("Dashboard", link_to))
+    if link_type == "URL":
+        return True
     return False
 
 
@@ -344,7 +347,8 @@ def build_workspace():
         card_names.append(title)
 
     shortcuts = [
-        {"type": t, "label": label, "link_to": link_to, **({"doc_view": "List"} if t == "DocType" else {})}
+        {"type": t, "label": label, "url": link_to} if t == "URL"
+        else {"type": t, "label": label, "link_to": link_to, **({"doc_view": "List"} if t == "DocType" else {})}
         for label, link_to, t in SHORTCUTS
         if _target_exists(link_to, t)
     ]
