@@ -124,7 +124,7 @@ SHORTCUTS = [
     ("Medical Records", "Medical Record", "DocType"),
     ("Sales Invoices", "Sales Invoice", "DocType"),
     ("Data Management", "baby-care-data", "Page"),
-    ("Parent API", "/parent-api", "URL"),
+    ("Parent API", "parent-api", "Page"),
 ]
 
 D, R, P = "DocType", "Report", "Page"
@@ -193,6 +193,7 @@ SECTIONS = [
         ("Age Groups", "Age Group", D),
         ("Document Types", "Document Type Config", D),
         ("Attendance Statuses", "Attendance Status", D),
+        ("Parent API", "parent-api", P),
         ("Role Permissions Manager", "permission-manager", P),
         ("User Permissions", "User Permission", D),
     ]),

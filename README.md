@@ -4,7 +4,7 @@ Nursery, daycare, kindergarten and baby-care centre management for **ERPNext v15
 Parents are ERPNext **Customers**, billing uses ERPNext **Sales Invoice** and **Payment Entry**,
 and every rule that varies between facilities is configuration, not code.
 
-Version 1.5.0 is tested end-to-end on Frappe v15 + ERPNext v15: fresh install, upgrade from
+Version 1.5.1 is tested end-to-end on Frappe v15 + ERPNext v15: fresh install, upgrade from
 1.0, uninstall, 34 automated tests, a 44-check role-permission audit and a browser test that opens every form for every role.
 
 ---
@@ -100,8 +100,13 @@ see none of them.
 
 ## Parent API (mobile app / parent portal)
 
-A read-only REST API for parents. Documentation with a built-in *Try it* console:
-**`https://<your-site>/parent-api`**. Machine-readable OpenAPI 3 (Swagger UI, Postman, Insomnia):
+A read-only REST API for parents.
+
+* **Inside the desk:** **Baby Care → Configuration → Parent API** (`/app/parent-api`) lists every
+  endpoint with search and group filter; click a row for its URL, parameters and examples.
+  System Manager and Nursery Administrator only.
+* **Public documentation** with a built-in *Try it* console: **`https://<your-site>/parent-api`**
+  (website URL, not under `/app`). Machine-readable OpenAPI 3 (Swagger UI, Postman, Insomnia):
 **`/api/method/baby_care.api.v1.openapi`**.
 
 | Endpoint | Method | What it returns |
