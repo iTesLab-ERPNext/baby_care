@@ -22,22 +22,16 @@ frappe.query_reports["Revenue Report"] = {
 			default: "Month",
 		},
 		{
-			fieldname: "customer",
+			fieldname: "parent_profile",
 			label: __("Parent"),
 			fieldtype: "Link",
-			options: "Customer",
+			options: "Parent Profile",
 		},
 		{
 			fieldname: "child",
 			label: __("Child"),
 			fieldtype: "Link",
 			options: "Child",
-		},
-		{
-			fieldname: "company",
-			label: __("Company"),
-			fieldtype: "Link",
-			options: "Company",
 		}
 	],
 };

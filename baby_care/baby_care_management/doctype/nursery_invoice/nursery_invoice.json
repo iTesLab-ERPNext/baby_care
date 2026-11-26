@@ -1,0 +1,328 @@
+{
+ "actions": [],
+ "creation": "2026-11-26 00:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "naming_series",
+  "parent_profile",
+  "parent_name",
+  "child",
+  "child_name",
+  "col_head",
+  "posting_date",
+  "due_date",
+  "status",
+  "currency",
+  "sub_section",
+  "child_subscription",
+  "col_sub",
+  "billing_period",
+  "items_section",
+  "items",
+  "totals_section",
+  "total",
+  "discount_percent",
+  "discount_amount",
+  "col_totals",
+  "tax_rate",
+  "tax_amount",
+  "grand_total",
+  "paid_amount",
+  "outstanding_amount",
+  "more_section",
+  "remarks",
+  "amended_from"
+ ],
+ "fields": [
+  {
+   "fieldname": "naming_series",
+   "fieldtype": "Select",
+   "label": "Series",
+   "options": "INV-.YYYY.-",
+   "default": "INV-.YYYY.-",
+   "hidden": 1
+  },
+  {
+   "fieldname": "parent_profile",
+   "fieldtype": "Link",
+   "label": "Parent",
+   "options": "Parent Profile",
+   "reqd": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "search_index": 1
+  },
+  {
+   "fieldname": "parent_name",
+   "fieldtype": "Data",
+   "label": "Parent Name",
+   "fetch_from": "parent_profile.full_name",
+   "read_only": 1
+  },
+  {
+   "fieldname": "child",
+   "fieldtype": "Link",
+   "label": "Child",
+   "options": "Child",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "search_index": 1
+  },
+  {
+   "fieldname": "child_name",
+   "fieldtype": "Data",
+   "label": "Child Name",
+   "fetch_from": "child.full_name",
+   "read_only": 1
+  },
+  {
+   "fieldname": "col_head",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "posting_date",
+   "fieldtype": "Date",
+   "label": "Invoice Date",
+   "reqd": 1,
+   "default": "Today",
+   "in_list_view": 1,
+   "search_index": 1
+  },
+  {
+   "fieldname": "due_date",
+   "fieldtype": "Date",
+   "label": "Due Date",
+   "reqd": 1,
+   "search_index": 1
+  },
+  {
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "label": "Status",
+   "options": "Draft\nUnpaid\nPartly Paid\nPaid\nOverdue\nCancelled",
+   "default": "Draft",
+   "read_only": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "search_index": 1,
+   "allow_on_submit": 1
+  },
+  {
+   "fieldname": "currency",
+   "fieldtype": "Link",
+   "label": "Currency",
+   "options": "Currency",
+   "reqd": 1
+  },
+  {
+   "fieldname": "sub_section",
+   "fieldtype": "Section Break",
+   "label": "Subscription",
+   "collapsible": 1
+  },
+  {
+   "fieldname": "child_subscription",
+   "fieldtype": "Link",
+   "label": "Subscription",
+   "options": "Child Subscription",
+   "read_only": 1,
+   "search_index": 1
+  },
+  {
+   "fieldname": "col_sub",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "billing_period",
+   "fieldtype": "Data",
+   "label": "Billing Period",
+   "read_only": 1,
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "items_section",
+   "fieldtype": "Section Break",
+   "label": "Items"
+  },
+  {
+   "fieldname": "items",
+   "fieldtype": "Table",
+   "label": "Items",
+   "options": "Nursery Invoice Item",
+   "reqd": 1
+  },
+  {
+   "fieldname": "totals_section",
+   "fieldtype": "Section Break",
+   "label": "Totals"
+  },
+  {
+   "fieldname": "total",
+   "fieldtype": "Currency",
+   "label": "Total",
+   "options": "currency",
+   "read_only": 1
+  },
+  {
+   "fieldname": "discount_percent",
+   "fieldtype": "Percent",
+   "label": "Discount %"
+  },
+  {
+   "fieldname": "discount_amount",
+   "fieldtype": "Currency",
+   "label": "Discount Amount",
+   "options": "currency",
+   "read_only": 1
+  },
+  {
+   "fieldname": "col_totals",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "tax_rate",
+   "fieldtype": "Percent",
+   "label": "Tax %"
+  },
+  {
+   "fieldname": "tax_amount",
+   "fieldtype": "Currency",
+   "label": "Tax Amount",
+   "options": "currency",
+   "read_only": 1
+  },
+  {
+   "fieldname": "grand_total",
+   "fieldtype": "Currency",
+   "label": "Grand Total",
+   "options": "currency",
+   "read_only": 1,
+   "bold": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "paid_amount",
+   "fieldtype": "Currency",
+   "label": "Paid",
+   "options": "currency",
+   "read_only": 1,
+   "allow_on_submit": 1,
+   "no_copy": 1
+  },
+  {
+   "fieldname": "outstanding_amount",
+   "fieldtype": "Currency",
+   "label": "Outstanding",
+   "options": "currency",
+   "read_only": 1,
+   "allow_on_submit": 1,
+   "no_copy": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "more_section",
+   "fieldtype": "Section Break",
+   "label": "More",
+   "collapsible": 1
+  },
+  {
+   "fieldname": "remarks",
+   "fieldtype": "Small Text",
+   "label": "Remarks"
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "options": "Nursery Invoice",
+   "read_only": 1,
+   "no_copy": 1,
+   "print_hide": 1
+  }
+ ],
+ "modified": "2026-11-26 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Baby Care Management",
+ "name": "Nursery Invoice",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "role": "System Manager",
+   "permlevel": 0,
+   "read": 1,
+   "report": 1,
+   "print": 1,
+   "export": 1,
+   "email": 1,
+   "share": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "import": 1,
+   "submit": 1,
+   "cancel": 1,
+   "amend": 1
+  },
+  {
+   "role": "Nursery Administrator",
+   "permlevel": 0,
+   "read": 1,
+   "report": 1,
+   "print": 1,
+   "export": 1,
+   "email": 1,
+   "share": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "import": 1,
+   "submit": 1,
+   "cancel": 1,
+   "amend": 1
+  },
+  {
+   "role": "Nursery Accountant",
+   "permlevel": 0,
+   "read": 1,
+   "report": 1,
+   "print": 1,
+   "export": 1,
+   "email": 1,
+   "share": 0,
+   "write": 1,
+   "create": 1,
+   "delete": 0,
+   "import": 0,
+   "submit": 1,
+   "cancel": 1,
+   "amend": 1
+  },
+  {
+   "role": "Nursery Receptionist",
+   "permlevel": 0,
+   "read": 1,
+   "report": 1,
+   "print": 1,
+   "export": 0,
+   "email": 1,
+   "share": 0,
+   "write": 0,
+   "create": 0,
+   "delete": 0,
+   "import": 0,
+   "submit": 0,
+   "cancel": 0,
+   "amend": 0
+  }
+ ],
+ "sort_field": "posting_date",
+ "sort_order": "DESC",
+ "states": [],
+ "autoname": "naming_series:",
+ "is_submittable": 1,
+ "title_field": "parent_name",
+ "track_changes": 1,
+ "allow_import": 1,
+ "search_fields": "parent_name,child_name,billing_period"
+}

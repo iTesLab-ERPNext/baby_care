@@ -9,7 +9,7 @@ class ChildDocument(Document):
         if self.document_for == "Parent":
             self.child = None
         else:
-            self.parent_customer = None
+            self.parent_profile = None
         cfg = frappe.db.get_value("Document Type Config", self.document_type, ["applies_to", "has_expiry"], as_dict=True)
         if cfg and cfg.applies_to not in ("Both", self.document_for):
             frappe.throw(_("Document type {0} applies to {1} only.").format(self.document_type, cfg.applies_to))

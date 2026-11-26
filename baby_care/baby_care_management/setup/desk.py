@@ -87,16 +87,15 @@ def _charts():
         {
             "chart_name": "Nursery Revenue",
             "chart_type": "Sum",
-            "document_type": "Sales Invoice",
+            "document_type": "Nursery Invoice",
             "based_on": "posting_date",
-            "value_based_on": "base_grand_total",
+            "value_based_on": "grand_total",
             "timeseries": 1,
             "timespan": "Last Year",
             "time_interval": "Monthly",
             "type": "Bar",
             "filters_json": json.dumps([
-                ["Sales Invoice", "docstatus", "=", 1, False],
-                ["Sales Invoice", "baby_care_subscription", "is", "set", False],
+                ["Nursery Invoice", "docstatus", "=", 1, False],
             ]),
             "color": "#5E64FF",
         },
@@ -118,11 +117,12 @@ WORKSPACE_CHARTS = ["Children by Class", "Daily Attendance", "Nursery Revenue", 
 SHORTCUTS = [
     ("Baby Care Dashboard", DASHBOARD, "Dashboard"),
     ("Children", "Child", "DocType"),
-    ("Parents", "Customer", "DocType"),
+    ("Parents", "Parent Profile", "DocType"),
     ("Attendance", "Child Attendance", "DocType"),
     ("Subscriptions", "Child Subscription", "DocType"),
     ("Medical Records", "Medical Record", "DocType"),
-    ("Sales Invoices", "Sales Invoice", "DocType"),
+    ("Invoices", "Nursery Invoice", "DocType"),
+    ("Payments", "Nursery Payment", "DocType"),
     ("Data Management", "baby-care-data", "Page"),
     ("Parent API", "parent-api", "Page"),
 ]
@@ -136,7 +136,7 @@ SECTIONS = [
         ("Financial Overview", "Revenue Report", R),
     ]),
     ("Parents & Children", [
-        ("Parents (Customer)", "Customer", D),
+        ("Parents", "Parent Profile", D),
         ("Children", "Child", D),
         ("Enrollment", "Enrolled Children Summary", R),
         ("Classes & Groups", "Nursery Class", D),
@@ -146,8 +146,8 @@ SECTIONS = [
     ("Subscriptions & Billing", [
         ("Subscription Plans", "Subscription Plan", D),
         ("Child Subscriptions", "Child Subscription", D),
-        ("Sales Invoices", "Sales Invoice", D),
-        ("Payment Entries", "Payment Entry", D),
+        ("Invoices", "Nursery Invoice", D),
+        ("Payments", "Nursery Payment", D),
         ("Outstanding Payments", "Outstanding Payments", R),
         ("Parent Account Statement", "Parent Account Statement", R),
     ]),
@@ -169,7 +169,6 @@ SECTIONS = [
     ]),
     ("Staff & Attendance", [
         ("Teachers", "Teacher Profile", D),
-        ("Staff Management", "Employee", D),
         ("Child Attendance", "Child Attendance", D),
         ("Daily Attendance Report", "Attendance Summary", R),
     ]),
@@ -219,14 +218,13 @@ MONEY_CHARTS = {"Nursery Revenue"}
 
 
 def _company_currency():
-    company = frappe.db.get_single_value("Nursery Settings", "default_company") or frappe.defaults.get_global_default("company")
-    return frappe.get_cached_value("Company", company, "default_currency") if company else None
+    return frappe.db.get_single_value("Nursery Settings", "default_currency") or frappe.db.get_default("currency")
 
 
 def fix_currencies():
     """Frappe fills the empty `currency` link of new Number Cards / Dashboard
     Charts from the site default, which makes count widgets render as money.
-    Counts get no currency; money widgets get the company currency."""
+    Counts get no currency; money widgets get the nursery currency."""
     currency = _company_currency()
     for label, _method, _color in NUMBER_CARDS:
         if frappe.db.exists("Number Card", label):
@@ -271,6 +269,12 @@ def ensure_number_card(label, method, color):
 
 def ensure_chart(chart):
     if frappe.db.exists("Dashboard Chart", chart["chart_name"]):
+        # 2.0: charts built on ERPNext DocTypes are moved to the app's own ones
+        current = frappe.db.get_value("Dashboard Chart", chart["chart_name"], "document_type")
+        if current != chart["document_type"] and frappe.db.exists("DocType", chart["document_type"]):
+            frappe.db.set_value("Dashboard Chart", chart["chart_name"],
+                                {k: chart.get(k) for k in ("document_type", "based_on", "value_based_on", "filters_json", "group_by_based_on")
+                                 if k in chart}, update_modified=False)
         return
     if not frappe.db.exists("DocType", chart["document_type"]):
         return

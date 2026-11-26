@@ -69,7 +69,7 @@ def generate_due_invoices(s=None):
     horizon = add_days(today(), cint(s.invoice_generation_day))
     due = frappe.get_all(
         "Child Subscription",
-        filters={"docstatus": 1, "status": "Active", "next_billing_date": ("<=", horizon)},
+        filters={"docstatus": 1, "status": "Active", "next_billing_date": ("<=", horizon), "parent_profile": ("is", "set")},
         fields=["name", "next_billing_date", "end_date"],
     )
     for sub in due:
@@ -105,9 +105,9 @@ def remind_expiring_documents(s):
     for d in frappe.get_all(
         "Child Document",
         filters={"status": "Valid", "expiry_date": ("between", [today(), horizon])},
-        fields=["name", "child", "parent_customer", "document_type", "expiry_date"],
+        fields=["name", "child", "parent_profile", "document_type", "expiry_date"],
     ):
-        owner = d.child or d.parent_customer
+        owner = d.child or d.parent_profile
         notify_roles(ADMIN, _("Document expiring — {0}").format(owner),
                      _("{0} expires on {1}.").format(d.document_type, formatdate(d.expiry_date)), "Child Document", d.name)
 
@@ -124,15 +124,19 @@ def remind_missing_documents(s):
 
 # ── finance ──────────────────────────────────────────────────────────────────
 def remind_overdue_invoices(s):
+    from baby_care.baby_care_management.utils.billing import refresh_overdue
+
+    refresh_overdue()
     threshold = add_days(today(), -(cint(s.notify_overdue_after_days) or 0))
-    for si in frappe.get_all(
-        "Sales Invoice",
-        filters={"docstatus": 1, "outstanding_amount": (">", 0), "due_date": ("<", threshold), "baby_care_subscription": ("is", "set")},
-        fields=["name", "customer", "outstanding_amount", "due_date"],
+    for inv in frappe.get_all(
+        "Nursery Invoice",
+        filters={"docstatus": 1, "outstanding_amount": (">", 0), "due_date": ("<", threshold)},
+        fields=["name", "parent_name", "outstanding_amount", "currency", "due_date"],
     ):
-        notify_roles(FINANCE, _("Overdue invoice — {0}").format(si.customer),
-                     _("{0}: {1} outstanding since {2}.").format(si.name, si.outstanding_amount, formatdate(si.due_date)),
-                     "Sales Invoice", si.name, dedupe_days=7)
+        notify_roles(FINANCE, _("Overdue invoice — {0}").format(inv.parent_name),
+                     _("{0}: {1} outstanding since {2}.").format(
+                         inv.name, frappe.format(inv.outstanding_amount, {"fieldtype": "Currency", "options": inv.currency}), formatdate(inv.due_date)),
+                     "Nursery Invoice", inv.name, dedupe_days=7)
 
 
 # ── birthdays ────────────────────────────────────────────────────────────────

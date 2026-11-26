@@ -5,15 +5,15 @@ from frappe.utils import date_diff, flt, today
 
 def execute(filters=None):
     filters = frappe._dict(filters or {})
-    f = {"docstatus": 1, "baby_care_subscription": ("is", "set"), "outstanding_amount": (">", 0)}
-    if filters.get("customer"):
-        f["customer"] = filters.customer
+    f = {"docstatus": 1, "outstanding_amount": (">", 0)}
+    if filters.get("parent_profile"):
+        f["parent_profile"] = filters.parent_profile
     if filters.get("overdue_only"):
         f["due_date"] = ("<", today())
     rows = frappe.get_list(
-        "Sales Invoice",
+        "Nursery Invoice",
         filters=f,
-        fields=["name", "customer", "customer_name", "baby_care_child", "baby_care_billing_period", "posting_date", "due_date", "base_grand_total", "outstanding_amount", "status"],
+        fields=["name", "parent_profile", "parent_name", "child", "billing_period", "posting_date", "due_date", "grand_total", "outstanding_amount", "status"],
         order_by="due_date asc",
         limit_page_length=0,
     )
@@ -25,13 +25,14 @@ def execute(filters=None):
         r.ageing = b
         buckets[b] += flt(r.outstanding_amount)
     columns = [
-        {"label": _("Invoice"), "fieldname": "name", "fieldtype": "Link", "options": "Sales Invoice", "width": 150},
-        {"label": _("Parent"), "fieldname": "customer", "fieldtype": "Link", "options": "Customer", "width": 160},
-        {"label": _("Child"), "fieldname": "baby_care_child", "fieldtype": "Link", "options": "Child", "width": 120},
-        {"label": _("Period"), "fieldname": "baby_care_billing_period", "fieldtype": "Data", "width": 90},
+        {"label": _("Invoice"), "fieldname": "name", "fieldtype": "Link", "options": "Nursery Invoice", "width": 150},
+        {"label": _("Parent"), "fieldname": "parent_profile", "fieldtype": "Link", "options": "Parent Profile", "width": 110},
+        {"label": _("Parent Name"), "fieldname": "parent_name", "fieldtype": "Data", "width": 160},
+        {"label": _("Child"), "fieldname": "child", "fieldtype": "Link", "options": "Child", "width": 120},
+        {"label": _("Period"), "fieldname": "billing_period", "fieldtype": "Data", "width": 90},
         {"label": _("Invoice Date"), "fieldname": "posting_date", "fieldtype": "Date", "width": 100},
         {"label": _("Due Date"), "fieldname": "due_date", "fieldtype": "Date", "width": 100},
-        {"label": _("Amount"), "fieldname": "base_grand_total", "fieldtype": "Currency", "width": 120},
+        {"label": _("Amount"), "fieldname": "grand_total", "fieldtype": "Currency", "width": 120},
         {"label": _("Outstanding"), "fieldname": "outstanding_amount", "fieldtype": "Currency", "width": 120},
         {"label": _("Days Overdue"), "fieldname": "days_overdue", "fieldtype": "Int", "width": 100},
         {"label": _("Ageing"), "fieldname": "ageing", "fieldtype": "Data", "width": 80},
@@ -41,6 +42,6 @@ def execute(filters=None):
     summary = [
         {"label": _("Outstanding"), "value": sum(flt(r.outstanding_amount) for r in rows), "datatype": "Currency", "indicator": "Red"},
         {"label": _("Overdue invoices"), "value": len([r for r in rows if r.days_overdue]), "indicator": "Orange"},
-        {"label": _("Parents concerned"), "value": len({r.customer for r in rows}), "indicator": "Blue"},
+        {"label": _("Parents concerned"), "value": len({r.parent_profile for r in rows}), "indicator": "Blue"},
     ]
     return columns, rows, None, chart, summary

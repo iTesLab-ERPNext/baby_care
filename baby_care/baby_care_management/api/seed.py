@@ -55,10 +55,8 @@ def install_master_data():
             "notify_document_expiry_days": 30,
             "notify_overdue_after_days": 7,
         })
-    if not settings.default_company:
-        settings.default_company = frappe.defaults.get_global_default("company") or frappe.db.get_value("Company", {}, "name")
-    if not settings.default_currency and settings.default_company:
-        settings.default_currency = frappe.get_cached_value("Company", settings.default_company, "default_currency")
+    if not settings.default_currency:
+        settings.default_currency = frappe.db.get_default("currency") or ("TND" if frappe.db.exists("Currency", "TND") else None)
     settings.flags.ignore_permissions = True
     settings.flags.ignore_mandatory = True
     settings.save()
@@ -180,12 +178,11 @@ def _placeholder_file(track):
 
 
 def _build_test_data(track):
-    group = _first("Customer Group", "Individual", {"is_group": 0})
-    territory = _first("Territory", "All Territories")
     parents = []
-    for name in ("Sara Ben Ali [TEST]", "Karim Trabelsi [TEST]", "Amira Haddad [TEST]"):
-        parents.append(_insert({"doctype": "Customer", "customer_name": name, "customer_type": "Individual",
-                                "customer_group": group, "territory": territory}, track).name)
+    for first, last, rel, phone in (("Sara", "Ben Ali [TEST]", "Mother", "+21620111111"), ("Karim", "Trabelsi [TEST]", "Father", "+21620222222"),
+                                    ("Amira", "Haddad [TEST]", "Mother", "+21620333333")):
+        parents.append(_insert({"doctype": "Parent Profile", "first_name": first, "last_name": last, "relationship": rel,
+                                "mobile_no": phone, "is_active": 1}, track).name)
     t1 = _insert({"doctype": "Teacher Profile", "full_name": "Leila Mansour [TEST]", "employment_status": "Active", "start_date": add_months(today(), -12), "email": "leila.test@example.com"}, track)
     t2 = _insert({"doctype": "Teacher Profile", "full_name": "Youssef Gharbi [TEST]", "employment_status": "Active", "start_date": add_months(today(), -6), "email": "youssef.test@example.com"}, track)
     c1 = _insert({"doctype": "Nursery Class", "class_name": "Butterflies [TEST]", "age_group": "Toddlers", "capacity": 12, "status": "Active",
@@ -205,7 +202,7 @@ def _build_test_data(track):
         child = _insert({
             "doctype": "Child", "first_name": first, "last_name": f"{last} [TEST]", "date_of_birth": dob, "gender": gender,
             "enrollment_status": "Active", "registration_date": add_months(today(), -3), "nursery_class": cls, "assigned_teacher": teacher,
-            "parents": [{"parent_customer": parents[p_idx], "relationship": "Mother" if p_idx != 1 else "Father", "is_primary": 1, "can_pickup": 1}],
+            "parents": [{"parent_profile": parents[p_idx], "relationship": "Mother" if p_idx != 1 else "Father", "is_primary": 1, "can_pickup": 1}],
             "emergency_contacts": [{"full_name": "Emergency Contact", "relationship": "Grandparent", "phone": "+21620000000"}],
             "authorized_pickups": [{"full_name": "Grandma [TEST]", "relationship": "Grandmother", "phone": "+21620000001"}],
         }, track)
@@ -240,7 +237,7 @@ def _build_test_data(track):
     for child in children:
         _insert({"doctype": "Child Document", "document_for": "Child", "child": child.name, "document_type": "Birth Certificate",
                  "issue_date": child.date_of_birth, "attached_file": placeholder}, track)
-    _insert({"doctype": "Child Document", "document_for": "Parent", "parent_customer": parents[0], "document_type": "Parent Identification",
+    _insert({"doctype": "Child Document", "document_for": "Parent", "parent_profile": parents[0], "document_type": "Parent Identification",
              "issue_date": add_months(today(), -40), "expiry_date": add_days(today(), 20), "attached_file": placeholder}, track)
 
     # meal plans: Omar gets the allergy-free plan
@@ -255,7 +252,7 @@ def _build_test_data(track):
     plans = ["Monthly Full Day", "Quarterly Full Day", "Monthly Full Day", "Monthly Full Day", "Monthly Full Day"]
     for child, plan in zip(children, plans):
         sub = frappe.get_doc({
-            "doctype": "Child Subscription", "child": child.name, "parent_customer": child.parents[0].parent_customer,
+            "doctype": "Child Subscription", "child": child.name, "parent_profile": child.parents[0].parent_profile,
             "subscription_plan": plan, "start_date": add_months(today(), -1),
             "additional_services": [{"service": "Lunch Service"}] if child.first_name in ("Adam", "Yasmine") else [],
         })
@@ -263,17 +260,21 @@ def _build_test_data(track):
         sub.submit()
         track.append([sub.doctype, sub.name])
 
-    # invoices for the first billing period (skipped if accounting is not configured yet)
+    # invoices for the first billing period, and one payment
     from baby_care.baby_care_management.utils.billing import create_subscription_invoice
 
+    invoices = []
     for row in [r for r in track if r[0] == "Child Subscription"]:
-        try:
-            si = create_subscription_invoice(row[1])
-            track.append(["Sales Invoice", si])
-        except Exception:
-            frappe.log_error(title="Baby Care test data: invoice skipped")
-            frappe.clear_messages()
-            break
+        inv = create_subscription_invoice(row[1], submit=1)
+        track.append(["Nursery Invoice", inv])
+        invoices.append(inv)
+    first = frappe.get_doc("Nursery Invoice", invoices[0])
+    pay = frappe.get_doc({"doctype": "Nursery Payment", "parent_profile": first.parent_profile, "amount": first.grand_total,
+                          "currency": first.currency, "mode_of_payment": "Cash", "payment_date": today(),
+                          "allocations": [{"invoice": first.name, "allocated_amount": first.grand_total}]})
+    pay.insert(ignore_permissions=True)
+    pay.submit()
+    track.append([pay.doctype, pay.name])
 
 
 @frappe.whitelist()
@@ -288,16 +289,18 @@ def _clear_tracked():
     for doctype, name in reversed(rows):
         if not frappe.db.exists("DocType", doctype) or not frappe.db.exists(doctype, name):
             continue
-        if doctype == "Sales Invoice":
+        if doctype == "Nursery Invoice":
             # payments recorded on demo invoices (by users trying the app) go too;
             # cancelling them updates the invoice, so load it only afterwards
-            for pe in set(frappe.get_all("Payment Entry Reference", filters={"reference_name": name, "docstatus": ("<", 2)}, pluck="parent")):
-                pe_doc = frappe.get_doc("Payment Entry", pe)
+            for pe in set(frappe.get_all("Nursery Payment Allocation", filters={"invoice": name, "parenttype": "Nursery Payment"}, pluck="parent")):
+                if not frappe.db.exists("Nursery Payment", pe):
+                    continue
+                pe_doc = frappe.get_doc("Nursery Payment", pe)
                 if pe_doc.docstatus == 1:
                     pe_doc.flags.ignore_permissions = True
                     pe_doc.flags.ignore_links = True
                     pe_doc.cancel()
-                frappe.delete_doc("Payment Entry", pe, ignore_permissions=True, force=True)
+                frappe.delete_doc("Nursery Payment", pe, ignore_permissions=True, force=True)
         doc = frappe.get_doc(doctype, name)
         if doc.docstatus == 1:
             doc.flags.ignore_permissions = True
@@ -316,7 +319,7 @@ def _clear_tracked():
 def get_status():
     _only_admins()
     counts = {}
-    for dt in ("Customer", "Child", "Teacher Profile", "Nursery Class", "Child Subscription", "Child Attendance", "Medical Record",
+    for dt in ("Parent Profile", "Child", "Teacher Profile", "Nursery Class", "Child Subscription", "Child Attendance", "Medical Record", "Nursery Invoice", "Nursery Payment",
                "Subscription Plan", "Nursery Service", "Meal Plan", "Transportation Route", "Age Group", "Attendance Status", "Document Type Config"):
         counts[dt] = frappe.db.count(dt)
     test = {}

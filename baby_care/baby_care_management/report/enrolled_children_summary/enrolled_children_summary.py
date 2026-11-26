@@ -42,8 +42,8 @@ def execute(filters=None):
             except ValueError:
                 b = dob.replace(year=t.year, day=28)
             r.next_birthday = b if b >= t else b.replace(year=t.year + 1)
-    if filters.get("parent_customer"):
-        allowed = set(frappe.get_all("Child Parent Link", filters={"parent_customer": filters.parent_customer, "parenttype": "Child"}, pluck="parent"))
+    if filters.get("parent_profile"):
+        allowed = set(frappe.get_all("Child Parent Link", filters={"parent_profile": filters.parent_profile, "parenttype": "Child"}, pluck="parent"))
         rows = [r for r in rows if r.name in allowed]
 
     by_class = {}

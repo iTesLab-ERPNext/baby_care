@@ -1,21 +1,33 @@
 """
-Billing: turns Child Subscriptions into ERPNext Sales Invoices.
+Billing: Child Subscriptions → Nursery Invoices, Nursery Payments → invoice balances.
 
-Every invoice created here carries three custom fields (added on install):
-``baby_care_subscription``, ``baby_care_child`` and ``baby_care_billing_period``.
-They make duplicate-period protection reliable and let reports / dashboards
-separate nursery revenue from other sales of the same company.
+Everything lives in the app's own DocTypes (no ERPNext):
+
+* ``Nursery Invoice`` (submittable) — one per child and billing period, with
+  lines, discount, tax, paid and outstanding amounts and a status.
+* ``Nursery Payment`` (submittable) — money received from a parent, allocated
+  to one or more invoices (oldest first when left empty). Anything not
+  allocated stays as a credit on the parent.
 """
 import frappe
 from frappe import _
 from frappe.utils import add_days, add_months, cint, flt, getdate, today
 
 FREQUENCY_MONTHS = {"Monthly": 1, "Quarterly": 3, "Annual": 12}
+OPEN = ("Unpaid", "Partly Paid", "Overdue")
 
 
-# ── public API ───────────────────────────────────────────────────────────────
+def settings():
+    return frappe.get_cached_doc("Nursery Settings")
+
+
+def default_currency():
+    return frappe.db.get_single_value("Nursery Settings", "default_currency") or frappe.db.get_default("currency") or "TND"
+
+
+# ── subscription invoices ────────────────────────────────────────────────────
 def create_subscription_invoice(subscription_name, submit=None):
-    """Create (and by default submit) the Sales Invoice for the subscription's next billing period."""
+    """Create (and by default submit) the invoice for the subscription's next billing period."""
     sub = frappe.get_doc("Child Subscription", subscription_name)
     if sub.docstatus != 1:
         frappe.throw(_("Submit the subscription before generating invoices."))
@@ -23,6 +35,8 @@ def create_subscription_invoice(subscription_name, submit=None):
         sub.db_set("status", "Active")
     if sub.status != "Active":
         frappe.throw(_("Cannot invoice a subscription with status {0}.").format(sub.status))
+    if not sub.parent_profile:
+        frappe.throw(_("Subscription {0} has no parent to invoice. Set the Parent on the subscription first.").format(sub.name))
     if sub.end_date and getdate(sub.next_billing_date) > getdate(sub.end_date):
         frappe.throw(_("Subscription {0} has no billing period left before its end date ({1}). Renew it first.").format(sub.name, sub.end_date))
 
@@ -32,70 +46,51 @@ def create_subscription_invoice(subscription_name, submit=None):
     period = billing_period_label(plan, period_start)
 
     existing = frappe.db.get_value(
-        "Sales Invoice",
-        {"baby_care_subscription": sub.name, "baby_care_billing_period": period, "docstatus": ("<", 2)},
-        "name",
+        "Nursery Invoice", {"child_subscription": sub.name, "billing_period": period, "docstatus": ("<", 2)}, "name"
     )
     if existing:
         frappe.throw(_("Billing period {0} is already invoiced ({1}).").format(period, existing), title=_("Duplicate invoice"))
 
-    settings = frappe.get_single("Nursery Settings")
-    company = get_company(settings)
-    si = frappe.new_doc("Sales Invoice")
-    si.customer = sub.parent_customer
-    si.company = company
-    si.posting_date = today()
-    si.set_posting_time = 1
-    si.due_date = add_days(today(), cint(settings.invoice_due_days) or 15)
-    si.currency = sub.currency or frappe.get_cached_value("Company", company, "default_currency")
-    si.baby_care_subscription = sub.name
-    si.baby_care_child = sub.child
-    si.baby_care_billing_period = period
-    if settings.default_payment_terms:
-        si.payment_terms_template = settings.default_payment_terms
-    child_name = frappe.db.get_value("Child", sub.child, "full_name") or sub.child
-    period_label = _("{0} to {1}").format(period_start, add_days(add_months(period_start, months), -1))
+    s = frappe.get_single("Nursery Settings")
+    inv = frappe.new_doc("Nursery Invoice")
+    inv.parent_profile = sub.parent_profile
+    inv.child = sub.child
+    inv.child_subscription = sub.name
+    inv.billing_period = period
+    inv.posting_date = today()
+    inv.due_date = add_days(today(), cint(s.invoice_due_days) or 15)
+    inv.currency = sub.currency or plan.currency or default_currency()
+    inv.discount_percent = flt(sub.discount_percent)
+    inv.tax_rate = flt(plan.tax_rate) if plan.tax_rate is not None and flt(plan.tax_rate) else flt(s.default_tax_rate)
 
-    _add_item(si, settings, _item_for_plan(plan, settings), flt(plan.base_price),
-              _("{0} — {1} — {2}").format(plan.plan_name, child_name, period_label))
+    child_name = frappe.db.get_value("Child", sub.child, "full_name") or sub.child
+    period_label = _("{0} to {1}").format(
+        frappe.format(period_start, "Date"), frappe.format(add_days(add_months(period_start, months), -1), "Date")
+    )
+    inv.append("items", {"description": _("{0} — {1} — {2}").format(plan.plan_name, child_name, period_label),
+                         "qty": 1, "rate": flt(plan.base_price)})
     for row in sub.additional_services or []:
         svc = frappe.get_cached_doc("Nursery Service", row.service)
         if svc.pricing_method == "Included in Subscription" or not flt(row.amount):
             continue
-        _add_item(si, settings, _item_for_service(svc, settings), flt(row.rate), _("{0} — {1}").format(svc.service_name, child_name), qty=flt(row.qty) or 1)
-
-    transport = _transport_line(sub.child, months)
+        inv.append("items", {"description": _("{0} — {1}").format(svc.service_name, child_name), "service": svc.name,
+                             "qty": flt(row.qty) or 1, "rate": flt(row.rate)})
+    transport = _transport_line(sub.child)
     if transport:
-        _add_item(si, settings, _item_for_name(_("Transportation"), settings), transport["rate"],
-                  _("Transportation ({0}) — {1}").format(transport["route"], child_name), qty=months)
+        inv.append("items", {"description": _("Transportation ({0}) — {1}").format(transport["route"], child_name),
+                             "qty": months, "rate": transport["rate"]})
 
-    if flt(sub.discount_percent):
-        si.additional_discount_percentage = flt(sub.discount_percent)
-    if plan.tax_template:
-        from erpnext.controllers.accounts_controller import get_taxes_and_charges
-
-        si.taxes_and_charges = plan.tax_template
-        for tax in get_taxes_and_charges("Sales Taxes and Charges Template", plan.tax_template) or []:
-            si.append("taxes", tax)
-
-    si.flags.ignore_permissions = True
-    si.insert()
-    should_submit = cint(settings.auto_submit_invoices) if submit is None else cint(submit)
-    if should_submit:
-        si.submit()
+    inv.flags.ignore_permissions = True
+    inv.insert()
+    if cint(s.auto_submit_invoices) if submit is None else cint(submit):
+        inv.submit()
 
     sub.append("invoices", {
-        "sales_invoice": si.name,
-        "billing_period": period,
-        "amount": si.grand_total,
-        "status": si.status,
-        "invoice_date": si.posting_date,
+        "invoice": inv.name, "billing_period": period, "amount": inv.grand_total,
+        "status": inv.status, "invoice_date": inv.posting_date,
     }).db_insert()
-    sub.db_set({
-        "next_billing_date": add_months(period_start, months),
-        "last_invoice_date": today(),
-    })
-    return si.name
+    sub.db_set({"next_billing_date": add_months(period_start, months), "last_invoice_date": today()})
+    return inv.name
 
 
 def period_months(plan):
@@ -113,61 +108,7 @@ def billing_period_label(plan, start):
     return start.strftime("%Y-%m")
 
 
-def get_company(settings=None):
-    settings = settings or frappe.get_single("Nursery Settings")
-    company = settings.default_company or frappe.defaults.get_user_default("Company") or frappe.db.get_single_value("Global Defaults", "default_company")
-    if not company:
-        company = frappe.db.get_value("Company", {}, "name")
-    if not company:
-        frappe.throw(_("Set a Default Company in Nursery Settings."))
-    return company
-
-
-# ── items ────────────────────────────────────────────────────────────────────
-def _add_item(si, settings, item_code, rate, description, qty=1):
-    row = {"item_code": item_code, "qty": qty, "rate": rate, "description": description}
-    if settings.default_income_account:
-        row["income_account"] = settings.default_income_account
-    if settings.default_cost_center:
-        row["cost_center"] = settings.default_cost_center
-    si.append("items", row)
-
-
-def _item_group(settings):
-    if settings.default_item_group:
-        return settings.default_item_group
-    return "Services" if frappe.db.exists("Item Group", "Services") else frappe.db.get_value("Item Group", {"is_group": 0}, "name") or "All Item Groups"
-
-
-def _item_for_name(name, settings):
-    code = name[:140]
-    if not frappe.db.exists("Item", code):
-        frappe.get_doc({
-            "doctype": "Item",
-            "item_code": code,
-            "item_name": code,
-            "item_group": _item_group(settings),
-            "stock_uom": "Nos" if frappe.db.exists("UOM", "Nos") else frappe.db.get_value("UOM", {}, "name"),
-            "is_stock_item": 0,
-            "is_sales_item": 1,
-            "include_item_in_manufacturing": 0,
-        }).insert(ignore_permissions=True)
-    return code
-
-
-def _item_for_plan(plan, settings):
-    return _item_for_name(_("Subscription: {0}").format(plan.plan_name), settings)
-
-
-def _item_for_service(svc, settings):
-    if svc.erpnext_item:
-        return svc.erpnext_item
-    code = _item_for_name(_("Service: {0}").format(svc.service_name), settings)
-    frappe.db.set_value("Nursery Service", svc.name, "erpnext_item", code, update_modified=False)
-    return code
-
-
-def _transport_line(child, months):
+def _transport_line(child):
     if not cint(frappe.db.get_single_value("Nursery Settings", "enable_transportation")):
         return None
     route = frappe.db.get_value("Child Transportation", {"child": child, "is_active": 1}, "route")
@@ -177,59 +118,108 @@ def _transport_line(child, months):
     return {"route": route, "rate": fee} if fee else None
 
 
-# ── status sync ──────────────────────────────────────────────────────────────
-def on_sales_invoice_change(doc, method=None):
-    if not doc.get("baby_care_subscription"):
+# ── balances ─────────────────────────────────────────────────────────────────
+def invoice_status(grand_total, outstanding, due_date, docstatus=1):
+    if docstatus == 0:
+        return "Draft"
+    if docstatus == 2:
+        return "Cancelled"
+    if flt(outstanding, 2) <= 0:
+        return "Paid"
+    if due_date and getdate(due_date) < getdate(today()):
+        return "Overdue"
+    if flt(outstanding, 2) < flt(grand_total, 2):
+        return "Partly Paid"
+    return "Unpaid"
+
+
+def paid_on_invoice(invoice, exclude_payment=None):
+    """Sum allocated to an invoice by submitted payments."""
+    cond, args = "", {"inv": invoice}
+    if exclude_payment:
+        cond, args["ex"] = " and p.name != %(ex)s", exclude_payment
+    return flt(frappe.db.sql(
+        f"""select coalesce(sum(a.allocated_amount), 0) from `tabNursery Payment Allocation` a
+            join `tabNursery Payment` p on p.name = a.parent
+            where a.parenttype = 'Nursery Payment' and a.invoice = %(inv)s and p.docstatus = 1{cond}""",
+        args,
+    )[0][0])
+
+
+def update_invoice_balance(invoice):
+    """Recompute paid / outstanding / status of a submitted invoice from its payments."""
+    inv = frappe.db.get_value("Nursery Invoice", invoice, ["name", "grand_total", "due_date", "docstatus", "status"], as_dict=True)
+    if not inv or inv.docstatus != 1:
         return
-    status = "Cancelled" if doc.docstatus == 2 else frappe.db.get_value("Sales Invoice", doc.name, "status")
-    for row in frappe.get_all("Child Subscription Invoice", filters={"sales_invoice": doc.name}, pluck="name"):
-        frappe.db.set_value("Child Subscription Invoice", row, {"status": status, "amount": doc.grand_total})
+    paid = paid_on_invoice(invoice)
+    outstanding = flt(flt(inv.grand_total) - paid, 2)
+    status = invoice_status(inv.grand_total, outstanding, inv.due_date)
+    frappe.db.set_value("Nursery Invoice", invoice, {"paid_amount": paid, "outstanding_amount": outstanding, "status": status},
+                        update_modified=False)
+    sync_subscription_row(invoice, status)
 
 
-def on_payment_entry_change(doc, method=None):
-    for ref in doc.get("references") or []:
-        if ref.reference_doctype != "Sales Invoice":
-            continue
-        si = frappe.db.get_value("Sales Invoice", ref.reference_name, ["name", "status", "grand_total", "docstatus", "baby_care_subscription"], as_dict=True)
-        if si and si.baby_care_subscription:
-            for row in frappe.get_all("Child Subscription Invoice", filters={"sales_invoice": si.name}, pluck="name"):
-                frappe.db.set_value("Child Subscription Invoice", row, "status", si.status)
+def sync_subscription_row(invoice, status=None, amount=None):
+    for row in frappe.get_all("Child Subscription Invoice", filters={"invoice": invoice}, pluck="name"):
+        values = {"status": status or frappe.db.get_value("Nursery Invoice", invoice, "status")}
+        if amount is not None:
+            values["amount"] = amount
+        frappe.db.set_value("Child Subscription Invoice", row, values, update_modified=False)
+
+
+def refresh_overdue():
+    """Daily: unpaid invoices past their due date become Overdue."""
+    for name in frappe.get_all("Nursery Invoice", filters={"docstatus": 1, "status": ("in", ("Unpaid", "Partly Paid")),
+                                                          "due_date": ("<", today())}, pluck="name"):
+        update_invoice_balance(name)
+
+
+def open_invoices(parent_profile, exclude_payment=None):
+    """Submitted invoices of a parent with something left to pay, oldest first."""
+    rows = frappe.get_all("Nursery Invoice", filters={"parent_profile": parent_profile, "docstatus": 1, "outstanding_amount": (">", 0)},
+                          fields=["name", "child", "grand_total", "outstanding_amount", "due_date", "posting_date"],
+                          order_by="due_date asc, posting_date asc, name asc")
+    if exclude_payment:  # outstanding as if this payment did not exist yet
+        for r in rows:
+            r.outstanding_amount = flt(r.grand_total) - paid_on_invoice(r.name, exclude_payment)
+    return rows
+
+
+def parent_credit(parent_profile):
+    return flt(frappe.db.sql("""select coalesce(sum(unallocated_amount), 0) from `tabNursery Payment`
+                                where parent_profile = %s and docstatus = 1""", parent_profile)[0][0])
 
 
 # ── parent account statement ─────────────────────────────────────────────────
 @frappe.whitelist()
-def get_parent_statement(customer):
-    """Invoices, payments, outstanding and subscriptions for one parent (Customer)."""
-    frappe.has_permission("Customer", "read", customer, throw=True)
-    out = {"invoices": [], "payments": [], "subscriptions": [], "children": [], "outstanding": 0, "next_due": None}
-    if frappe.has_permission("Sales Invoice", "read"):
+def get_parent_statement(parent_profile):
+    """Invoices, payments, outstanding and subscriptions for one parent."""
+    frappe.has_permission("Parent Profile", "read", parent_profile, throw=True)
+    out = {"invoices": [], "payments": [], "subscriptions": [], "children": [], "outstanding": 0, "credit": 0, "next_due": None}
+    if frappe.has_permission("Nursery Invoice", "read"):
         out["invoices"] = frappe.get_list(
-            "Sales Invoice",
-            filters={"customer": customer, "docstatus": 1},
-            fields=["name", "posting_date", "due_date", "grand_total", "outstanding_amount", "status", "baby_care_child", "baby_care_billing_period"],
-            order_by="posting_date desc",
-            limit_page_length=50,
+            "Nursery Invoice", filters={"parent_profile": parent_profile, "docstatus": 1},
+            fields=["name", "posting_date", "due_date", "grand_total", "outstanding_amount", "status", "child", "billing_period", "currency"],
+            order_by="posting_date desc", limit_page_length=0,
         )
         out["outstanding"] = sum(flt(i.outstanding_amount) for i in out["invoices"])
         due = [i.due_date for i in out["invoices"] if flt(i.outstanding_amount) > 0 and i.due_date]
         out["next_due"] = min(due) if due else None
-    if frappe.has_permission("Payment Entry", "read"):
+    if frappe.has_permission("Nursery Payment", "read"):
         out["payments"] = frappe.get_list(
-            "Payment Entry",
-            filters={"party_type": "Customer", "party": customer, "docstatus": 1},
-            fields=["name", "posting_date", "paid_amount", "mode_of_payment", "reference_no"],
-            order_by="posting_date desc",
-            limit_page_length=50,
+            "Nursery Payment", filters={"parent_profile": parent_profile, "docstatus": 1},
+            fields=["name", "payment_date", "amount", "mode_of_payment", "reference_no", "unallocated_amount"],
+            order_by="payment_date desc", limit_page_length=0,
         )
+        out["credit"] = sum(flt(p.unallocated_amount) for p in out["payments"])
     if frappe.has_permission("Child Subscription", "read"):
         out["subscriptions"] = frappe.get_list(
-            "Child Subscription",
-            filters={"parent_customer": customer, "docstatus": ("<", 2)},
+            "Child Subscription", filters={"parent_profile": parent_profile, "docstatus": ("<", 2)},
             fields=["name", "child", "subscription_plan", "status", "start_date", "end_date", "next_billing_date", "final_amount"],
             order_by="start_date desc",
         )
     if frappe.has_permission("Child", "read"):
-        names = frappe.get_all("Child Parent Link", filters={"parent_customer": customer, "parenttype": "Child"}, pluck="parent")
+        names = frappe.get_all("Child Parent Link", filters={"parent_profile": parent_profile, "parenttype": "Child"}, pluck="parent")
         if names:
             out["children"] = frappe.get_list(
                 "Child", filters={"name": ("in", names)}, fields=["name", "full_name", "enrollment_status", "nursery_class", "age_display"]

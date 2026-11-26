@@ -1,10 +1,10 @@
 frappe.query_reports["Outstanding Payments"] = {
 	filters: [
 		{
-			fieldname: "customer",
+			fieldname: "parent_profile",
 			label: __("Parent"),
 			fieldtype: "Link",
-			options: "Customer",
+			options: "Parent Profile",
 		},
 		{
 			fieldname: "overdue_only",

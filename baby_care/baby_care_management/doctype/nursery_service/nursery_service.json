@@ -19,7 +19,6 @@
   "eligibility_notes",
   "scope_section",
   "scope",
-  "erpnext_item",
   "description_section",
   "description",
   "start_date",
@@ -95,20 +94,13 @@
   {
    "fieldname": "scope_section",
    "fieldtype": "Section Break",
-   "label": "ERPNext Integration"
+   "label": "Scope"
   },
   {
    "fieldname": "scope",
    "fieldtype": "Select",
    "label": "Scope",
    "options": "Global\nClass-Level\nChild-Specific"
-  },
-  {
-   "fieldname": "erpnext_item",
-   "fieldtype": "Link",
-   "label": "Linked ERPNext Item",
-   "options": "Item",
-   "description": "Link to an ERPNext Item for invoicing"
   },
   {
    "fieldname": "description_section",
@@ -131,7 +123,7 @@
    "label": "Available Until"
   }
  ],
- "modified": "2026-10-16 19:30:00.000000",
+ "modified": "2026-11-26 00:00:00.000000",
  "modified_by": "Administrator",
  "module": "Baby Care Management",
  "name": "Nursery Service",

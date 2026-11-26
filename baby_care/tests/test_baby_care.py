@@ -1,7 +1,7 @@
 """
 Integration tests for Baby Care Management.
 
-Run on a site with ERPNext set up (company + chart of accounts):
+Run on any Frappe site with the app installed (ERPNext is not needed):
 
     bench --site <site> set-config allow_tests true
     bench --site <site> run-tests --module baby_care.tests.test_baby_care
@@ -90,13 +90,28 @@ class TestWorkspace(BabyCareTestBase):
 
 
 class TestBilling(BabyCareTestBase):
+    def _inv(self, child):
+        sub = frappe.db.get_value("Child Subscription", {"child": self.kids[child], "docstatus": 1}, "name")
+        return frappe.get_doc("Nursery Invoice", {"child_subscription": sub, "docstatus": 1})
+
+    def _pay(self, parent, amount, allocations=None, submit=True):
+        pay = frappe.get_doc({"doctype": "Nursery Payment", "parent_profile": parent, "amount": amount, "mode_of_payment": "Cash",
+                              "allocations": allocations or []})
+        pay.insert(ignore_permissions=True)
+        if submit:
+            pay.submit()
+        return pay
+
     def test_invoice_amounts_and_family_discount(self):
         lina_sub = frappe.db.get_value("Child Subscription", {"child": self.kids["Lina"], "docstatus": 1}, ["name", "discount_percent", "final_amount"], as_dict=True)
         self.assertEqual(flt(lina_sub.discount_percent), 10, "second child of the same parent gets the family discount")
-        si = frappe.get_doc("Sales Invoice", {"baby_care_subscription": lina_sub.name})
+        inv = self._inv("Lina")
         # quarterly plan 990 + 3 months of transport at 40, minus 10%
-        self.assertAlmostEqual(flt(si.grand_total), (990 + 120) * 0.9, places=2)
-        self.assertEqual(si.baby_care_child, self.kids["Lina"])
+        self.assertAlmostEqual(flt(inv.grand_total), (990 + 120) * 0.9, places=2)
+        self.assertEqual(inv.child, self.kids["Lina"])
+        self.assertEqual(inv.status, "Unpaid")
+        self.assertEqual(flt(inv.outstanding_amount), flt(inv.grand_total))
+        self.assertEqual(frappe.db.get_value("Child Subscription Invoice", {"invoice": inv.name}, "status"), "Unpaid")
 
     def test_duplicate_period_is_blocked(self):
         from baby_care.baby_care_management.utils.billing import create_subscription_invoice
@@ -108,35 +123,116 @@ class TestBilling(BabyCareTestBase):
             create_subscription_invoice(sub.name)
         frappe.db.set_value("Child Subscription", sub.name, "next_billing_date", nxt)
 
-    def test_payment_updates_subscription_invoice_status(self):
-        from erpnext.accounts.doctype.payment_entry.payment_entry import get_payment_entry
+    def test_demo_payment_settled_first_invoice(self):
+        inv = self._inv("Adam")
+        self.assertEqual(inv.status, "Paid")
+        self.assertEqual(flt(inv.outstanding_amount), 0)
 
-        sub = frappe.get_doc("Child Subscription", {"child": self.kids["Omar"], "docstatus": 1})
-        si = frappe.get_doc("Sales Invoice", {"baby_care_subscription": sub.name, "docstatus": 1})
-        pe = get_payment_entry("Sales Invoice", si.name)
-        pe.reference_no, pe.reference_date = "TEST", today()
-        pe.insert(ignore_permissions=True)
-        pe.submit()
-        status = frappe.db.get_value("Child Subscription Invoice", {"sales_invoice": si.name}, "status")
-        self.assertEqual(status, "Paid")
-        pe.cancel()
-        self.assertNotEqual(frappe.db.get_value("Child Subscription Invoice", {"sales_invoice": si.name}, "status"), "Paid")
+    def test_partial_payment_then_full(self):
+        inv = self._inv("Omar")
+        half = flt(inv.grand_total / 2, 2)
+        p1 = self._pay(inv.parent_profile, half, [{"invoice": inv.name, "allocated_amount": half}])
+        inv.reload()
+        self.assertEqual(inv.status, "Partly Paid")
+        self.assertAlmostEqual(flt(inv.outstanding_amount), flt(inv.grand_total) - half, places=2)
+        self.assertEqual(frappe.db.get_value("Child Subscription Invoice", {"invoice": inv.name}, "status"), "Partly Paid")
+        with self.assertRaises(frappe.ValidationError):  # more than what is left
+            self._pay(inv.parent_profile, inv.grand_total, [{"invoice": inv.name, "allocated_amount": inv.grand_total}])
+        p2 = self._pay(inv.parent_profile, flt(inv.outstanding_amount), [{"invoice": inv.name, "allocated_amount": inv.outstanding_amount}])
+        inv.reload()
+        self.assertEqual(inv.status, "Paid")
+        with self.assertRaises(frappe.ValidationError):  # paid invoices cannot be cancelled
+            inv.cancel()
+        p2.cancel()
+        p1.cancel()
+        inv.reload()
+        self.assertEqual(inv.status, "Unpaid")
+        self.assertAlmostEqual(flt(inv.outstanding_amount), flt(inv.grand_total), places=2)
+
+    def test_auto_allocation_oldest_first_and_credit(self):
+        yasmine, rayan = self._inv("Yasmine"), self._inv("Rayan")
+        parent = yasmine.parent_profile
+        self.assertEqual(parent, rayan.parent_profile)
+        frappe.db.set_value("Nursery Invoice", rayan.name, "due_date", add_days(yasmine.due_date, -1))
+        total = flt(yasmine.grand_total) + flt(rayan.grand_total)
+        pay = self._pay(parent, total + 25, submit=False)
+        self.assertEqual([r.invoice for r in pay.allocations], [rayan.name, yasmine.name], "oldest due date first")
+        self.assertAlmostEqual(flt(pay.unallocated_amount), 25, places=2)
+        pay.submit()
+        from baby_care.baby_care_management.utils.billing import parent_credit
+
+        self.assertAlmostEqual(parent_credit(parent), 25, places=2)
+        self.assertEqual(frappe.db.get_value("Nursery Invoice", yasmine.name, "status"), "Paid")
+        pay.cancel()
+        self.assertEqual(frappe.db.get_value("Nursery Invoice", rayan.name, "status"), "Unpaid")
+        frappe.db.set_value("Nursery Invoice", rayan.name, "due_date", yasmine.due_date)
+
+    def test_payment_rules(self):
+        inv = self._inv("Lina")
+        other = frappe.db.get_value("Parent Profile", {"first_name": "Karim", "last_name": ("like", "%[TEST]")}, "name")
+        with self.assertRaises(frappe.ValidationError):  # another family's invoice
+            self._pay(other, 10, [{"invoice": inv.name, "allocated_amount": 10}])
+        with self.assertRaises(frappe.ValidationError):  # allocations above the amount received
+            self._pay(inv.parent_profile, 10, [{"invoice": inv.name, "allocated_amount": 20}])
+        with self.assertRaises(frappe.ValidationError):
+            self._pay(inv.parent_profile, 0)
+
+    def test_manual_invoice_with_tax_and_overdue(self):
+        from baby_care.baby_care_management.utils.billing import refresh_overdue
+
+        parent = frappe.db.get_value("Parent Profile", {"first_name": "Karim", "last_name": ("like", "%[TEST]")}, "name")
+        inv = frappe.get_doc({"doctype": "Nursery Invoice", "parent_profile": parent, "child": self.kids["Omar"],
+                              "posting_date": add_days(today(), -40), "due_date": add_days(today(), -10),
+                              "discount_percent": 10, "tax_rate": 19,
+                              "items": [{"description": "Photo album", "qty": 2, "rate": 50}]})
+        inv.insert()
+        self.assertAlmostEqual(flt(inv.total), 100, places=2)
+        self.assertAlmostEqual(flt(inv.grand_total), 90 * 1.19, places=2)
+        inv.submit()
+        self.assertEqual(inv.status, "Overdue")
+        frappe.db.set_value("Nursery Invoice", inv.name, "status", "Unpaid")
+        refresh_overdue()
+        self.assertEqual(frappe.db.get_value("Nursery Invoice", inv.name, "status"), "Overdue")
+        inv.reload()
+        inv.cancel()
+        self.assertEqual(frappe.db.get_value("Nursery Invoice", inv.name, "status"), "Cancelled")
+        with self.assertRaises(frappe.ValidationError):  # child of another family
+            frappe.get_doc({"doctype": "Nursery Invoice", "parent_profile": parent, "child": self.kids["Adam"],
+                            "items": [{"description": "x", "rate": 1}]}).insert()
 
 
 class TestSubscriptionRules(BabyCareTestBase):
     def test_overlapping_subscription_rejected(self):
         child = frappe.get_doc("Child", self.kids["Adam"])
-        dup = frappe.get_doc({"doctype": "Child Subscription", "child": child.name, "parent_customer": child.parents[0].parent_customer,
+        dup = frappe.get_doc({"doctype": "Child Subscription", "child": child.name, "parent_profile": child.parents[0].parent_profile,
                               "subscription_plan": "Monthly Full Day", "start_date": today()})
         with self.assertRaises(frappe.ValidationError):
             dup.insert()
 
     def test_parent_must_be_linked(self):
-        stranger = frappe.db.get_value("Customer", {"customer_name": ("like", "Karim%[TEST]")}, "name")
-        sub = frappe.get_doc({"doctype": "Child Subscription", "child": self.kids["Adam"], "parent_customer": stranger,
+        stranger = frappe.db.get_value("Parent Profile", {"first_name": "Karim", "last_name": ("like", "%[TEST]")}, "name")
+        sub = frappe.get_doc({"doctype": "Child Subscription", "child": self.kids["Adam"], "parent_profile": stranger,
                               "subscription_plan": "Monthly Full Day", "start_date": add_months(today(), 24)})
         with self.assertRaises(frappe.ValidationError):
             sub.insert()
+
+    def test_parent_missing_after_upgrade(self):
+        """Sites upgraded from 1.x have submitted subscriptions without a parent."""
+        from baby_care.baby_care_management.utils.billing import create_subscription_invoice
+
+        sub = frappe.get_doc("Child Subscription", {"child": self.kids["Lina"], "docstatus": 1})
+        parent = sub.parent_profile
+        frappe.db.set_value("Child Subscription", sub.name, "parent_profile", None)
+        with self.assertRaises(frappe.ValidationError):
+            create_subscription_invoice(sub.name)
+        sub.reload()
+        sub.parent_profile = parent
+        sub.save()  # allowed on a submitted subscription that has none
+        self.assertEqual(frappe.db.get_value("Child Subscription", sub.name, "parent_profile"), parent)
+        sub.reload()
+        sub.parent_profile = frappe.db.get_value("Parent Profile", {"first_name": "Karim", "last_name": ("like", "%[TEST]")}, "name")
+        with self.assertRaises(frappe.ValidationError):
+            sub.save()
 
     def test_suspend_resume_renew(self):
         sub = frappe.get_doc("Child Subscription", {"child": self.kids["Rayan"], "docstatus": 1})
@@ -221,7 +317,7 @@ class TestPermissions(BabyCareTestBase):
     def setUpClass(cls):
         super().setUpClass()
         cls.teacher = _user("ut-teacher@bc.test", ["Nursery Teacher"])
-        cls.accountant = _user("ut-acc@bc.test", ["Nursery Accountant", "Accounts User"])
+        cls.accountant = _user("ut-acc@bc.test", ["Nursery Accountant"])
         cls.medical = _user("ut-med@bc.test", ["Nursery Medical Staff"])
         cls.admin = _user("ut-admin@bc.test", ["Nursery Administrator"])
         leila = frappe.db.get_value("Teacher Profile", {"full_name": ("like", "Leila%[TEST]")}, "name")
@@ -238,17 +334,19 @@ class TestPermissions(BabyCareTestBase):
         self.assertEqual(visible, {self.kids["Adam"], self.kids["Omar"]})
         self.assertFalse(frappe.has_permission("Child", "read", doc=self.kids["Lina"]))
         self.assertFalse(frappe.has_permission("Medical Record", "read"))
-        self.assertFalse(frappe.has_permission("Sales Invoice", "read"))
+        self.assertFalse(frappe.has_permission("Nursery Invoice", "read"))
 
     def test_accountant_no_medical(self):
         frappe.set_user(self.accountant)
         self.assertTrue(frappe.has_permission("Child Subscription", "read"))
+        self.assertTrue(frappe.has_permission("Nursery Invoice", "create"))
+        self.assertTrue(frappe.has_permission("Nursery Payment", "submit"))
         self.assertFalse(frappe.has_permission("Medical Record", "read"))
 
     def test_medical_no_finance(self):
         frappe.set_user(self.medical)
         self.assertTrue(frappe.has_permission("Medical Record", "read"))
-        self.assertFalse(frappe.has_permission("Sales Invoice", "read"))
+        self.assertFalse(frappe.has_permission("Nursery Invoice", "read"))
         self.assertFalse(frappe.has_permission("Child Subscription", "read"))
 
 
@@ -298,7 +396,7 @@ class TestNavbarMenu(BabyCareTestBase):
         teacher = _user("ut-nav-teacher@bc.test", ["Nursery Teacher"])
         _menu, routes = self._routes(teacher)
         self.assertIn("/app/child-attendance", routes)
-        for hidden in ("/app/sales-invoice", "/app/medical-record", "/app/payment-entry", "/app/permission-manager"):
+        for hidden in ("/app/nursery-invoice", "/app/medical-record", "/app/nursery-payment", "/app/permission-manager"):
             self.assertNotIn(hidden, routes)
         outsider = _user("ut-nav-none@bc.test", ["Blogger"])
         self.assertIsNone(self._routes(outsider)[0])
@@ -313,7 +411,7 @@ class TestParentAPI(BabyCareTestBase):
         from baby_care.baby_care_management.api.parents import create_parent_user
 
         frappe.set_user("Administrator")
-        cls.sara = frappe.db.get_value("Customer", {"customer_name": ("like", "Sara%[TEST]")}, "name")
+        cls.sara = frappe.db.get_value("Parent Profile", {"first_name": "Sara", "last_name": ("like", "%[TEST]")}, "name")
         cls.parent = create_parent_user(cls.sara, "ut-parent@bc.test", send_welcome_email=0)["user"]
         cls.outsider = _user("ut-outsider@bc.test", ["Nursery Teacher"])
 
@@ -324,7 +422,7 @@ class TestParentAPI(BabyCareTestBase):
         frappe.set_user("Administrator")
         self.assertIn("Nursery Parent", frappe.get_roles(self.parent))
         self.assertEqual(frappe.db.get_value("User", self.parent, "user_type"), "Website User")
-        self.assertIn(self.parent, frappe.get_all("Portal User", {"parent": self.sara}, pluck="user"))
+        self.assertEqual(frappe.db.get_value("Parent Profile", self.sara, "user"), self.parent)
 
     def test_children_scoped_to_family(self):
         from baby_care.api import v1
@@ -338,7 +436,7 @@ class TestParentAPI(BabyCareTestBase):
         for endpoint in (v1.child, v1.child_tracking, v1.child_attendance, v1.child_meals, v1.child_incidents, v1.child_documents):
             with self.assertRaises(frappe.DoesNotExistError):
                 endpoint(child=self.kids["Omar"])
-        other_invoice = frappe.get_all("Sales Invoice", {"customer": ("!=", self.sara), "docstatus": 1}, pluck="name", limit=1)
+        other_invoice = frappe.get_all("Nursery Invoice", {"parent_profile": ("!=", self.sara), "docstatus": 1}, pluck="name", limit=1)
         if other_invoice:
             with self.assertRaises(frappe.DoesNotExistError):
                 v1.invoice(other_invoice[0])
@@ -353,6 +451,13 @@ class TestParentAPI(BabyCareTestBase):
         self.assertEqual(len(inv), 2)
         bal = v1.balance()
         self.assertAlmostEqual(bal["invoiced"], sum(i.grand_total for i in inv), places=2)
+        self.assertGreater(bal["paid"], 0)  # the demo payment on Adam's invoice
+        detail = v1.invoice(inv[0].name)
+        self.assertTrue(detail["items"])
+        pays = v1.payments()
+        self.assertEqual(len(pays), 1)
+        self.assertTrue(pays[0].invoices)
+        self.assertTrue(any(f["type"] == "payment" for f in v1.notifications()))
         self.assertEqual(len(v1.subscriptions()), 2)
 
     def test_validation(self):
@@ -383,91 +488,86 @@ class TestClearAfterPayment(FrappeTestCase):
     """Clearing demo data must work after a user recorded a payment on a demo invoice."""
 
     def test_clear_with_paid_demo_invoice(self):
-        from erpnext.accounts.doctype.payment_entry.payment_entry import get_payment_entry
-
         frappe.set_user("Administrator")
         if not seed._registry():
             seed.install_test_data()
-        si = next((n for dt, n in seed._registry() if dt == "Sales Invoice" and frappe.db.get_value("Sales Invoice", n, "outstanding_amount")), None)
-        if not si:
+        inv = next((n for dt, n in seed._registry() if dt == "Nursery Invoice" and frappe.db.get_value("Nursery Invoice", n, "outstanding_amount")), None)
+        if not inv:
             self.skipTest("no unpaid demo invoice")
-        pe = get_payment_entry("Sales Invoice", si)
-        pe.reference_no, pe.reference_date = "UT", today()
-        pe.insert(ignore_permissions=True)
-        pe.submit()
+        doc = frappe.get_doc("Nursery Invoice", inv)
+        pay = frappe.get_doc({"doctype": "Nursery Payment", "parent_profile": doc.parent_profile, "amount": doc.outstanding_amount,
+                              "allocations": [{"invoice": inv, "allocated_amount": doc.outstanding_amount}]}).insert(ignore_permissions=True)
+        pay.submit()
         seed.clear_test_data()
-        self.assertFalse(frappe.db.exists("Sales Invoice", si))
-        self.assertFalse(frappe.db.exists("Payment Entry", pe.name))
-        self.assertEqual(frappe.db.count("Customer", {"customer_name": ("like", "%[TEST]")}), 0)
+        self.assertFalse(frappe.db.exists("Nursery Invoice", inv))
+        self.assertFalse(frappe.db.exists("Nursery Payment", pay.name))
+        self.assertEqual(frappe.db.count("Parent Profile", {"last_name": ("like", "%[TEST]")}), 0)
+        self.assertEqual(frappe.db.count("Nursery Payment", {"parent_profile": doc.parent_profile}), 0)
 
 
 class TestParentApp(BabyCareTestBase):
-    """Parent App credentials (Customer form) and the mobile endpoints."""
+    """Parent App credentials (Parent Profile form) and the mobile endpoints."""
+
+    login = "ut-app-parent@bc.test"
 
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
         frappe.set_user("Administrator")
-        cls.login = "ut-app-karim@bc.test"
-        cls.karim = frappe.get_doc({"doctype": "Customer", "customer_name": "UT App Parent", "customer_type": "Individual",
-                                    "customer_group": frappe.db.get_value("Customer Group", {"is_group": 0}),
-                                    "territory": "All Territories"}).insert(ignore_permissions=True).name
+        cls.profile = frappe.get_doc({"doctype": "Parent Profile", "first_name": "UT", "last_name": "App Parent",
+                                      "email": cls.login}).insert(ignore_permissions=True).name
 
     @classmethod
     def tearDownClass(cls):
         frappe.set_user("Administrator")
-        cls._reset(cls.karim)
-        frappe.delete_doc("Customer", cls.karim, force=True, ignore_permissions=True)
+        for u in ("ut-app-parent@bc.test", "ut-app-parent2@bc.test"):
+            if frappe.db.exists("User", u):
+                frappe.delete_doc("User", u, force=True, ignore_permissions=True)
+        frappe.delete_doc("Parent Profile", cls.profile, force=True, ignore_permissions=True)
         frappe.db.commit()
         super().tearDownClass()
 
-    @staticmethod
-    def _reset(customer):
-        main = frappe.db.get_value("Customer", customer, "bc_parent_user")
-        for u in {"ut-app-karim@bc.test", "ut-app-karim2@bc.test", "ut-app-extra@bc.test"}:
-            frappe.db.delete("Portal User", {"parent": customer, "user": u})
-            if frappe.db.exists("User", u) and u != main:
-                frappe.delete_doc("User", u, force=True, ignore_permissions=True)
-        if main in {"ut-app-karim@bc.test", "ut-app-karim2@bc.test"}:
-            frappe.db.delete("Portal User", {"parent": customer, "user": main})
-            frappe.delete_doc("User", main, force=True, ignore_permissions=True)
-            frappe.db.set_value("Customer", customer, {"bc_parent_app_access": 0, "bc_parent_login": None, "bc_parent_user": None})
-
     def _enable(self, password="Cedar#Lake58", login=None):
         frappe.set_user("Administrator")
-        c = frappe.get_doc("Customer", self.karim)
-        c.bc_parent_app_access = 1
-        c.bc_parent_login = login or self.login
-        c.bc_parent_password = password
-        c.save()
-        return frappe.get_doc("Customer", self.karim)
+        p = frappe.get_doc("Parent Profile", self.profile)
+        p.app_access = 1
+        p.app_login = login or self.login
+        p.app_password = password
+        p.save()
+        return frappe.get_doc("Parent Profile", self.profile)
 
-    def test_password_set_from_customer_form(self):
+    def test_password_set_from_profile_form(self):
         from frappe.utils.password import check_password
 
-        c = self._enable()
-        self.assertEqual(c.bc_parent_user, self.login)
+        p = self._enable()
+        self.assertEqual(p.user, self.login)
         self.assertEqual(check_password(self.login, "Cedar#Lake58"), self.login)
         self.assertIn("Nursery Parent", frappe.get_roles(self.login))
         self.assertEqual(frappe.db.get_value("User", self.login, "user_type"), "Website User")
-        self.assertFalse(c.get("bc_parent_password"))
-        self.assertFalse(frappe.db.exists("__Auth", {"doctype": "Customer", "name": self.karim, "fieldname": "bc_parent_password"}))
+        self.assertFalse(p.get("app_password"))
+        self.assertFalse(frappe.db.exists("__Auth", {"doctype": "Parent Profile", "name": self.profile, "fieldname": "app_password"}))
 
     def test_weak_password_refused(self):
         frappe.set_user("Administrator")
-        c = frappe.get_doc("Customer", self.karim)
-        c.bc_parent_app_access, c.bc_parent_login, c.bc_parent_password = 1, self.login, "short"
+        p = frappe.get_doc("Parent Profile", self.profile)
+        p.app_access, p.app_login, p.app_password = 1, self.login, "short"
         with self.assertRaises(frappe.ValidationError):
-            c.save()
+            p.save()
 
     def test_staff_account_refused(self):
         frappe.set_user("Administrator")
         staff = _user("ut-app-staff@bc.test", ["Nursery Teacher"])
         frappe.db.set_value("User", staff, "user_type", "System User")
-        c = frappe.get_doc("Customer", self.karim)
-        c.bc_parent_app_access, c.bc_parent_login = 1, staff
+        p = frappe.get_doc("Parent Profile", self.profile)
+        p.app_access, p.app_login = 1, staff
         with self.assertRaises(frappe.ValidationError):
-            c.save()
+            p.save()
+
+    def test_login_used_by_another_parent_refused(self):
+        self._enable()
+        other = frappe.get_doc({"doctype": "Parent Profile", "first_name": "UT Other", "app_access": 1, "app_login": self.login})
+        with self.assertRaises(frappe.ValidationError):
+            other.insert()
 
     def test_change_password_rotates_token(self):
         from baby_care.api import v1
@@ -491,44 +591,66 @@ class TestParentApp(BabyCareTestBase):
             v1.register_device("not-a-token")
         v1.register_device("ExponentPushToken[ut-123]", "android", "Pixel")
         self.assertTrue(frappe.db.exists("Parent App Device", {"user": self.login, "push_token": "ExponentPushToken[ut-123]"}))
-        feed = v1.notifications()
-        self.assertFalse([f for f in feed if f.get("child")])  # this family has no children
+        self.assertFalse([f for f in v1.notifications() if f.get("child")])  # this parent has no children
+        self.assertEqual(v1.balance()["invoiced"], 0)
         v1.app_logout(push_token="ExponentPushToken[ut-123]")
         self.assertFalse(frappe.db.exists("Parent App Device", {"user": self.login}))
 
     def test_login_change_renames_user(self):
-        c = self._enable()
-        c = self._enable(password=None, login="ut-app-karim2@bc.test")
-        self.assertEqual(c.bc_parent_user, "ut-app-karim2@bc.test")
+        self._enable()
+        p = self._enable(password=None, login="ut-app-parent2@bc.test")
+        self.assertEqual(p.user, "ut-app-parent2@bc.test")
         self.assertFalse(frappe.db.exists("User", self.login))
-        links = frappe.get_all("Portal User", {"parent": self.karim}, pluck="user")
-        self.assertIn("ut-app-karim2@bc.test", links)
-        self.assertNotIn(self.login, links)
         self._enable(password=None, login=self.login)
+        self.assertEqual(frappe.db.get_value("Parent Profile", self.profile, "user"), self.login)
 
     def test_disable_signs_out(self):
         from baby_care.api import v1
-        from baby_care.baby_care_management.api.parents import create_parent_user
 
         self._enable()
-        extra = create_parent_user(self.karim, "ut-app-extra@bc.test", send_welcome_email=0)["user"]
-        self.assertEqual(frappe.db.get_value("Customer", self.karim, "bc_parent_user"), self.login)  # main login kept
+        frappe.set_user(self.login)
+        v1.register_device("ExponentPushToken[ut-456]", "ios", "iPhone")
+        frappe.set_user("Administrator")
         token = v1._api_token(self.login)
-        c = frappe.get_doc("Customer", self.karim)
-        c.bc_parent_app_access = 0
-        c.save()
+        p = frappe.get_doc("Parent Profile", self.profile)
+        p.app_access = 0
+        p.save()
         self.assertFalse(frappe.db.get_value("User", self.login, "enabled"))
-        self.assertFalse(frappe.db.get_value("User", extra, "enabled"))
         self.assertNotEqual(token, v1._api_token(self.login))
+        self.assertFalse(frappe.db.exists("Parent App Device", {"user": self.login}))
+        frappe.set_user(self.login)
+        with self.assertRaises(frappe.PermissionError):
+            v1.children()
         self._enable()
         self.assertTrue(frappe.db.get_value("User", self.login, "enabled"))
 
-    def test_plain_customer_untouched(self):
+    def test_automatic_login_from_child(self):
         frappe.set_user("Administrator")
-        c = frappe.get_doc({"doctype": "Customer", "customer_name": "UT Plain Customer", "customer_type": "Company",
-                            "customer_group": frappe.db.get_value("Customer Group", {"is_group": 0}),
-                            "territory": "All Territories", "email_id": "ut-plain@bc.test"}).insert(ignore_permissions=True)
-        c.save()
-        self.assertFalse(frappe.db.exists("User", "ut-plain@bc.test"))
-        self.assertFalse(frappe.get_all("Portal User", {"parent": c.name}))
-        frappe.delete_doc("Customer", c.name, force=True)
+        frappe.db.set_single_value("Nursery Settings", "auto_create_parent_login", 1)
+        prof = frappe.get_doc({"doctype": "Parent Profile", "first_name": "UT Auto", "last_name": "Parent",
+                               "email": "ut-auto-parent@bc.test"}).insert()
+        child = frappe.get_doc({"doctype": "Child", "first_name": "UT", "last_name": "Auto Kid", "date_of_birth": add_months(today(), -20),
+                                "gender": "Female", "registration_date": today(), "parents": [{"parent_profile": prof.name, "relationship": "Mother"}]}).insert()
+        self.assertEqual(frappe.db.get_value("Parent Profile", prof.name, "user"), "ut-auto-parent@bc.test")
+        frappe.delete_doc("Child", child.name, force=True)
+        frappe.delete_doc("Parent Profile", prof.name, force=True)
+        self.assertFalse(frappe.db.get_value("User", "ut-auto-parent@bc.test", "enabled"))
+        frappe.delete_doc("User", "ut-auto-parent@bc.test", force=True)
+
+
+class TestNoERPNext(FrappeTestCase):
+    """2.0 runs on the Frappe Framework alone."""
+
+    def test_no_erpnext_doctypes_linked(self):
+        erpnext_dts = {"Customer", "Sales Invoice", "Payment Entry", "Item", "Company", "Account", "Cost Center",
+                       "Customer Group", "Territory", "Item Group", "Payment Terms Template", "Sales Taxes and Charges Template",
+                       "Portal User", "Contact", "Address", "Employee"}
+        for dt in frappe.get_all("DocType", {"module": "Baby Care Management"}, pluck="name"):
+            for df in frappe.get_meta(dt).fields:
+                if df.fieldtype in ("Link", "Table", "Table MultiSelect"):
+                    self.assertNotIn(df.options, erpnext_dts, f"{dt}.{df.fieldname} links to {df.options}")
+        from baby_care import hooks
+
+        self.assertEqual(hooks.required_apps, ["frappe"])
+        for dt in hooks.doc_events:
+            self.assertEqual(frappe.db.get_value("DocType", dt, "module"), "Baby Care Management", dt)

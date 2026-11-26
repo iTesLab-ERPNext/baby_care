@@ -7,7 +7,7 @@ Used by:
 """
 
 BASE = "/api/method/baby_care.api.v1."
-VERSION = "1.1.0"
+VERSION = "2.0.0"
 
 DATE = {"type": "string", "format": "date"}
 
@@ -22,13 +22,13 @@ ENDPOINTS = [
      "token needed. The token stays valid until the parent changes their password, the nursery sets a new one, or "
      "`app_logout` is called with `all_devices=1`. Limited to 10 attempts per 5 minutes per IP.",
      False,
-     [("usr", "string", True, "Parent e-mail (the login set on the Customer's Parent App tab)", "parent@example.com"),
+     [("usr", "string", True, "Parent e-mail (the login set on the Parent Profile's Parent App tab)", "parent@example.com"),
       ("pwd", "string", True, "Password", "********"),
       ("device_name", "string", False, "Phone name, for the nursery's records", "Pixel 9")],
      {"token": "1a2b3c4d5e6f7a8:9b8c7d6e5f4a3b2", "user": "parent@example.com", "full_name": "Sara Ben Ali",
-      "parents": [{"customer": "Sara Ben Ali", "customer_name": "Sara Ben Ali"}],
+      "parents": [{"parent": "PAR-00001", "full_name": "Sara Ben Ali", "relationship": "Mother"}],
       "children": [{"child": "CHILD-00001", "full_name": "Adam Ben Ali"}],
-      "app": {"name": "My Nursery", "currency": "TND", "api_version": "1.1.0", "push_enabled": True}}),
+      "app": {"name": "My Nursery", "currency": "TND", "api_version": "2.0.0", "push_enabled": True}}),
     ("app_logout", "POST", "Mobile App", "Mobile logout",
      "Removes this phone's push registration. With `all_devices=1` every app token of the parent stops working.", True,
      [("push_token", "string", False, "This phone's Expo push token", "ExponentPushToken[xxxx]"),
@@ -41,7 +41,7 @@ ENDPOINTS = [
     ("app_info", "GET", "Mobile App", "App information",
      "Public: the nursery name the app shows on its login screen, currency and API version.", False, [],
      {"name": "My Nursery", "facility_type": "Nursery", "logo": "/assets/baby_care/images/baby_care_logo.svg",
-      "currency": "TND", "api_version": "1.1.0", "push_enabled": True}),
+      "currency": "TND", "api_version": "2.0.0", "push_enabled": True}),
     ("register_device", "POST", "Mobile App", "Register for push notifications",
      "Stores the phone's Expo push token. The nursery then pushes arrivals, departures, health notes, new invoices and payments.", True,
      [("push_token", "string", True, "Expo push token", "ExponentPushToken[xxxx]"),
@@ -62,12 +62,12 @@ ENDPOINTS = [
      [("usr", "string", True, "Parent e-mail / user id", "parent@example.com"),
       ("pwd", "string", True, "Password", "********")],
      {"user": "parent@example.com", "full_name": "Sara Ben Ali", "sid": "4b1c…", "csrf_token": "f2e9…",
-      "parents": [{"customer": "Sara Ben Ali", "customer_name": "Sara Ben Ali"}],
+      "parents": [{"parent": "PAR-00001", "full_name": "Sara Ben Ali", "relationship": "Mother"}],
       "children": [{"child": "CHILD-00001", "full_name": "Adam Ben Ali"}]}),
     ("logout", "POST", "Authentication", "Log out", "Ends the current session.", True, [], {"ok": True}),
-    ("me", "GET", "Profile", "Parent profile", "The logged-in parent, their parent (customer) records and a short list of children.", True, [],
+    ("me", "GET", "Profile", "Parent profile", "The logged-in parent, their parent profile(s) and a short list of children.", True, [],
      {"user": "parent@example.com", "full_name": "Sara Ben Ali",
-      "parents": [{"customer": "Sara Ben Ali", "customer_name": "Sara Ben Ali", "mobile_no": "+216…", "email_id": "parent@example.com"}],
+      "parents": [{"parent": "PAR-00001", "full_name": "Sara Ben Ali", "relationship": "Mother", "mobile_no": "+216…", "email": "parent@example.com"}],
       "children": [{"child": "CHILD-00001", "full_name": "Adam Ben Ali"}]}),
     ("children", "GET", "Children", "List my children", "All children linked to the parent, with class, teacher and status.", True, [],
      [{"child": "CHILD-00001", "full_name": "Adam Ben Ali", "date_of_birth": "2024-04-02", "age": "2 yr 6 mo", "gender": "Male",
@@ -120,19 +120,19 @@ ENDPOINTS = [
     ("invoices", "GET", "Billing", "Invoices", "Submitted invoices of the parent, newest first.", True,
      [("status", "string", False, "`all` (default), `unpaid`, `overdue` or `paid`", "unpaid"),
       ("child", "string", False, "Only this child", "CHILD-00001"), LIMIT, START],
-     [{"name": "ACC-SINV-2026-00001", "date": "2026-10-01", "due_date": "2026-10-16", "child": "CHILD-00001",
+     [{"name": "INV-2026-00001", "date": "2026-10-01", "due_date": "2026-10-16", "child": "CHILD-00001",
        "billing_period": "2026-10", "grand_total": 410.0, "outstanding_amount": 410.0, "status": "Unpaid", "currency": "TND"}]),
     ("invoice", "GET", "Billing", "Invoice details", "One invoice with its lines, taxes and payments.", True,
-     [("name", "string", True, "Invoice number", "ACC-SINV-2026-00001")],
-     {"name": "ACC-SINV-2026-00001", "grand_total": 410.0, "outstanding_amount": 0.0, "status": "Paid",
+     [("name", "string", True, "Invoice number", "INV-2026-00001")],
+     {"name": "INV-2026-00001", "grand_total": 410.0, "outstanding_amount": 0.0, "status": "Paid",
       "items": [{"description": "Monthly Full Day — Adam — 2026-10-01 to 2026-10-31", "qty": 1, "rate": 350.0, "amount": 350.0}],
-      "taxes": [], "payments": [{"payment_entry": "ACC-PAY-2026-00001", "date": "2026-10-05", "amount": 410.0}]}),
+      "taxes": [], "payments": [{"payment": "PAY-2026-00001", "date": "2026-10-05", "amount": 410.0}]}),
     ("payments", "GET", "Billing", "Payments", "Payments received from the parent, newest first, with the invoices they settle.", True,
      [LIMIT, START],
-     [{"name": "ACC-PAY-2026-00001", "date": "2026-10-05", "amount": 410.0, "mode_of_payment": "Cash", "reference_no": None,
-       "currency": "TND", "invoices": [{"invoice": "ACC-SINV-2026-00001", "allocated_amount": 410.0}]}]),
+     [{"name": "PAY-2026-00001", "date": "2026-10-05", "amount": 410.0, "mode_of_payment": "Cash", "reference_no": None,
+       "currency": "TND", "invoices": [{"invoice": "INV-2026-00001", "allocated_amount": 410.0}]}]),
     ("balance", "GET", "Billing", "Account balance", "Totals for the parent: invoiced, paid, outstanding, overdue and the next due date, overall and per child.", True, [],
-     {"currency": "TND", "invoiced": 1520.0, "paid": 1110.0, "outstanding": 410.0, "overdue": 0.0, "next_due_date": "2026-11-16",
+     {"currency": "TND", "invoiced": 1520.0, "paid": 1110.0, "outstanding": 410.0, "overdue": 0.0, "credit": 0.0, "next_due_date": "2026-11-16",
       "by_child": [{"child": "CHILD-00001", "child_name": "Adam Ben Ali", "invoiced": 820.0, "outstanding": 410.0}]}),
 ]
 

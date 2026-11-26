@@ -8,7 +8,7 @@
  "title_field": "child",
  "field_order": [
   "child",
-  "parent_customer",
+  "parent_profile",
   "col_break_1",
   "subscription_plan",
   "status",
@@ -42,14 +42,16 @@
    "in_standard_filter": 1
   },
   {
-   "fieldname": "parent_customer",
+   "fieldname": "parent_profile",
    "fieldtype": "Link",
-   "label": "Parent (Customer)",
-   "options": "Customer",
+   "label": "Parent",
+   "options": "Parent Profile",
    "reqd": 1,
    "in_list_view": 1,
    "in_standard_filter": 1,
-   "fetch_from": ""
+   "fetch_from": "",
+   "allow_on_submit": 1,
+   "description": "Parent who is invoiced. Can be set on a submitted subscription that has none (sites upgraded from 1.x)."
   },
   {
    "fieldname": "col_break_1",
@@ -182,7 +184,7 @@
    "allow_on_submit": 1
   }
  ],
- "modified": "2026-10-22 14:30:00.000000",
+ "modified": "2026-11-27 00:00:00.000000",
  "modified_by": "Administrator",
  "module": "Baby Care Management",
  "name": "Child Subscription",

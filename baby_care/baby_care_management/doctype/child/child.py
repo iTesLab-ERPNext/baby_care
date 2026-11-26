@@ -66,9 +66,9 @@ class Child(Document):
             frappe.throw(_("A child must have at least one parent or guardian linked."))
         seen = set()
         for row in self.parents:
-            if row.parent_customer in seen:
-                frappe.throw(_("Parent {0} is linked more than once.").format(row.parent_customer))
-            seen.add(row.parent_customer)
+            if row.parent_profile in seen:
+                frappe.throw(_("Parent {0} is linked more than once.").format(row.parent_profile))
+            seen.add(row.parent_profile)
         primaries = [p for p in self.parents if p.is_primary]
         if not primaries:
             self.parents[0].is_primary = 1

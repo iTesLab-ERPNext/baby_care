@@ -18,14 +18,15 @@ def _enabled():
 
 
 def parent_users_of_child(child):
-    customers = frappe.get_all("Child Parent Link", filters={"parenttype": "Child", "parent": child}, pluck="parent_customer")
-    return parent_users_of_customers(customers)
+    parents = frappe.get_all("Child Parent Link", filters={"parenttype": "Child", "parent": child}, pluck="parent_profile")
+    return parent_users(parents)
 
 
-def parent_users_of_customers(customers):
-    if not customers:
+def parent_users(parent_profiles):
+    """Enabled app logins of these Parent Profiles."""
+    if not parent_profiles:
         return []
-    users = frappe.get_all("Portal User", filters={"parenttype": "Customer", "parent": ("in", customers)}, pluck="user")
+    users = frappe.get_all("Parent Profile", filters={"name": ("in", parent_profiles), "app_access": 1, "user": ("is", "set")}, pluck="user")
     return sorted({u for u in users if frappe.db.get_value("User", u, "enabled")})
 
 
@@ -92,16 +93,12 @@ def on_incident_insert(doc, method=None):
 
 
 def on_invoice_submit(doc, method=None):
-    if not doc.get("baby_care_subscription"):
-        return
-    notify(parent_users_of_customers([doc.customer]), _("New invoice"),
+    notify(parent_users([doc.parent_profile]), _("New invoice"),
            _("{0} — due {1}").format(_money(flt(doc.grand_total), doc.currency), frappe.format(doc.due_date, "Date")),
            {"type": "invoice", "invoice": doc.name})
 
 
 def on_payment_submit(doc, method=None):
-    if doc.party_type != "Customer" or doc.payment_type != "Receive":
-        return
-    notify(parent_users_of_customers([doc.party]), _("Payment received"),
-           _("Thank you — {0} received.").format(_money(flt(doc.paid_amount), doc.paid_from_account_currency)),
+    notify(parent_users([doc.parent_profile]), _("Payment received"),
+           _("Thank you — {0} received.").format(_money(flt(doc.amount), doc.currency)),
            {"type": "payment", "payment": doc.name})

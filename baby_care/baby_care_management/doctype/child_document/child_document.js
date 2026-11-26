@@ -5,7 +5,7 @@ frappe.ui.form.on("Child Document", {
 		}));
 	},
 	document_for(frm) {
-		frm.set_value(frm.doc.document_for === "Parent" ? "child" : "parent_customer", "");
+		frm.set_value(frm.doc.document_for === "Parent" ? "child" : "parent_profile", "");
 		frm.set_value("document_type", "");
 	},
 	refresh(frm) {

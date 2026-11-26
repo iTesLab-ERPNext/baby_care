@@ -7,7 +7,7 @@
  "field_order": [
   "document_for",
   "child",
-  "parent_customer",
+  "parent_profile",
   "document_type",
   "col_break",
   "issue_date",
@@ -40,10 +40,10 @@
    "mandatory_depends_on": "eval:doc.document_for!='Parent'"
   },
   {
-   "fieldname": "parent_customer",
+   "fieldname": "parent_profile",
    "fieldtype": "Link",
-   "label": "Parent (Customer)",
-   "options": "Customer",
+   "label": "Parent",
+   "options": "Parent Profile",
    "depends_on": "eval:doc.document_for=='Parent'",
    "mandatory_depends_on": "eval:doc.document_for=='Parent'",
    "in_standard_filter": 1
@@ -106,7 +106,7 @@
    "label": "Notes"
   }
  ],
- "modified": "2026-10-16 19:30:00.000000",
+ "modified": "2026-11-26 00:00:00.000000",
  "modified_by": "Administrator",
  "module": "Baby Care Management",
  "name": "Child Document",

@@ -26,10 +26,10 @@ frappe.query_reports["Enrolled Children Summary"] = {
 			options: "Age Group",
 		},
 		{
-			fieldname: "parent_customer",
+			fieldname: "parent_profile",
 			label: __("Parent"),
 			fieldtype: "Link",
-			options: "Customer",
+			options: "Parent Profile",
 		}
 	],
 };

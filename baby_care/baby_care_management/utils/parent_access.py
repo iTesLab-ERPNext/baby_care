@@ -1,21 +1,20 @@
 """
-Parent App access — login credentials for parents, managed on the Customer.
+Parent App access — the parent's login, managed on the Parent Profile (tab "Parent App").
 
-Custom fields on Customer (tab "Parent App", created on install/migrate):
-  bc_parent_app_access   Check     Enable Parent App Access
-  bc_parent_login        Data      App Login (e-mail)
-  bc_parent_password     Password  Set / Change Password   (never stored: applied to the user, then cleared)
-  bc_send_credentials    Check     E-mail the login details to the parent
-  bc_parent_user         Link User Linked App User (read only)
+  app_access        Enable Parent App Access
+  app_login         App Login (e-mail)
+  app_password      Set / Change Password   (never stored: applied to the user, then cleared)
+  send_credentials  E-mail the login details to the parent
+  user              Linked App User (read only)
 
 Rules
-* Enabling access creates (or reuses) a Website User with the "Nursery Parent"
-  role and adds it to the Customer's Portal Users — the link the Parent API
-  uses to decide which children a parent sees.
-* No password typed → a password is generated and shown once to the staff
-  member who saved the form (and e-mailed if asked).
-* Changing the login e-mail renames the user; disabling access disables the
-  user (data and history stay).
+* Enabling access creates (or reuses) a Frappe *Website User* with the
+  "Nursery Parent" role and links it in ``Parent Profile.user`` — the link the
+  Parent API uses to decide which children a parent sees. One login per profile.
+* No password typed for a new login → one is generated and shown once to the
+  staff member who saved the form (and e-mailed if asked).
+* Changing the login e-mail renames the user; switching access off disables the
+  user, signs out every phone (token rotated, devices dropped).
 * When a Child is saved, its parents that have an e-mail but no app login get
   one automatically (Nursery Settings → "Create Parent App Logins Automatically").
 """
@@ -27,31 +26,7 @@ from frappe import _
 from frappe.utils import cint, escape_html, get_url, validate_email_address
 
 PARENT_ROLE = "Nursery Parent"
-FIELDS = [
-    {"fieldname": "bc_parent_app_tab", "fieldtype": "Tab Break", "label": "Parent App"},
-    {"fieldname": "bc_parent_app_access", "fieldtype": "Check", "label": "Enable Parent App Access",
-     "description": "Lets this parent sign in to the Baby Care mobile app and see only their own children, attendance, meals and invoices."},
-    {"fieldname": "bc_parent_login", "fieldtype": "Data", "options": "Email", "label": "App Login (e-mail)",
-     "depends_on": "bc_parent_app_access", "mandatory_depends_on": "bc_parent_app_access",
-     "description": "Defaults to the customer's e-mail. Changing it changes the parent's login."},
-    {"fieldname": "bc_parent_password", "fieldtype": "Password", "label": "Set / Change Password",
-     "depends_on": "bc_parent_app_access",
-     "description": "Leave empty to keep the current password. On first activation an empty password is generated and shown once."},
-    {"fieldname": "bc_send_credentials", "fieldtype": "Check", "label": "E-mail the login details to the parent",
-     "depends_on": "bc_parent_app_access"},
-    {"fieldname": "bc_parent_app_col", "fieldtype": "Column Break"},
-    {"fieldname": "bc_parent_user", "fieldtype": "Link", "options": "User", "label": "Linked App User", "read_only": 1,
-     "depends_on": "bc_parent_user"},
-]
-
-
-def custom_fields(insert_after):
-    out, prev = [], insert_after
-    for df in FIELDS:
-        row = dict(df, insert_after=prev)
-        out.append(row)
-        prev = df["fieldname"]
-    return out
+DT = "Parent Profile"
 
 
 def generate_password(length=10):
@@ -67,65 +42,60 @@ def _masked(value):
     return not value or set(str(value)) == {"*"}
 
 
-# ── Customer hooks ───────────────────────────────────────────────────────────
-def customer_validate(doc, method=None):
-    if not doc.meta.has_field("bc_parent_app_access"):
+# ── Parent Profile hooks (called from its controller) ────────────────────────
+def profile_validate(doc):
+    pwd = doc.get("app_password")
+    doc.flags.new_password = None if _masked(pwd) else pwd
+    doc.app_password = None
+    if not cint(doc.app_access):
         return
-    # take the typed password out of the document before it is saved
-    pwd = doc.get("bc_parent_password")
-    doc.flags.bc_new_password = None if _masked(pwd) else pwd
-    doc.bc_parent_password = None
-    if cint(doc.bc_parent_app_access):
-        if not doc.bc_parent_login:
-            doc.bc_parent_login = doc.email_id
-        doc.bc_parent_login = (doc.bc_parent_login or "").strip().lower()
-        if not doc.bc_parent_login or not validate_email_address(doc.bc_parent_login):
-            frappe.throw(_("Enter a valid e-mail as the Parent App login."), title=_("Parent App"))
-        owner = frappe.db.get_value("User", doc.bc_parent_login, ["name", "user_type"], as_dict=True)
-        if owner and owner.user_type == "System User":
-            frappe.throw(_("{0} is a staff account and cannot be used as a parent login.").format(doc.bc_parent_login), title=_("Parent App"))
-        if doc.flags.bc_new_password:
-            _check_strength(doc.flags.bc_new_password, doc.bc_parent_login)
+    doc.app_login = (doc.app_login or doc.email or "").strip().lower()
+    if not doc.app_login or not validate_email_address(doc.app_login):
+        frappe.throw(_("Enter a valid e-mail as the Parent App login."), title=_("Parent App"))
+    owner = frappe.db.get_value("User", doc.app_login, ["name", "user_type"], as_dict=True)
+    if owner and owner.user_type == "System User":
+        frappe.throw(_("{0} is a staff account and cannot be used as a parent login.").format(doc.app_login), title=_("Parent App"))
+    other = frappe.db.get_value(DT, {"user": doc.app_login, "name": ("!=", doc.name)}, "name") or (
+        frappe.db.get_value(DT, {"app_login": doc.app_login, "app_access": 1, "name": ("!=", doc.name)}, "name"))
+    if other:
+        frappe.throw(_("{0} is already the app login of parent {1}.").format(doc.app_login, other), title=_("Parent App"))
+    if doc.flags.new_password:
+        check_strength(doc.flags.new_password, doc.app_login)
 
 
-def customer_on_update(doc, method=None):
-    if not doc.meta.has_field("bc_parent_app_access") or doc.flags.bc_syncing:
+def profile_on_update(doc):
+    if doc.flags.syncing_access:
         return
-    # the masked value Frappe kept for the Password field is not wanted
-    frappe.db.delete("__Auth", {"doctype": "Customer", "name": doc.name, "fieldname": "bc_parent_password"})
-    if cint(doc.bc_parent_app_access):
-        result = enable_access(doc, password=doc.flags.bc_new_password, send_email=cint(doc.bc_send_credentials))
-        if doc.bc_send_credentials:
-            frappe.db.set_value("Customer", doc.name, "bc_send_credentials", 0, update_modified=False)
+    frappe.db.delete("__Auth", {"doctype": DT, "name": doc.name, "fieldname": "app_password"})
+    if cint(doc.app_access):
+        result = enable_access(doc, password=doc.flags.new_password, send_email=cint(doc.send_credentials))
+        if doc.send_credentials:
+            frappe.db.set_value(DT, doc.name, "send_credentials", 0, update_modified=False)
         _report(result)
-    elif doc.get_doc_before_save() and cint(doc.get_doc_before_save().get("bc_parent_app_access")):
-        disabled = disable_access(doc.name)
-        if disabled:
-            frappe.msgprint(_("Parent App access disabled for {0}.").format(", ".join(disabled)), alert=True)
+    else:
+        before = doc.get_doc_before_save()
+        if (before and cint(before.app_access)) or (not cint(doc.is_active) and doc.user):
+            disabled = disable_access(doc.name)
+            if disabled:
+                frappe.msgprint(_("Parent App access disabled for {0}.").format(", ".join(disabled)), alert=True)
 
 
-def disable_access(customer):
-    """Switch off the app logins of a family: the main one and any extra Portal
-    User that is a parent of this Customer only. Phones are signed out at once."""
-    main = frappe.db.get_value("Customer", customer, "bc_parent_user")
-    users = set(frappe.get_all("Portal User", {"parent": customer, "parenttype": "Customer"}, pluck="user"))
-    if main:
-        users.add(main)
+def profile_on_trash(doc):
+    if doc.user:
+        disable_access(doc.name)
+
+
+def disable_access(parent_profile):
+    """Switch off a parent's login; phones are signed out at once. Returns the users disabled."""
+    user = frappe.db.get_value(DT, parent_profile, "user")
+    if not user or not frappe.db.exists("User", user) or frappe.db.get_value("User", user, "user_type") == "System User":
+        return []
     disabled = []
-    for u in sorted(users):
-        if u != main:
-            if PARENT_ROLE not in frappe.get_roles(u):
-                continue
-            others = frappe.get_all("Portal User", {"user": u, "parenttype": "Customer", "parent": ("!=", customer)}, pluck="parent")
-            if others:
-                continue
-        if frappe.db.get_value("User", u, "user_type") == "System User":
-            continue
-        if frappe.db.get_value("User", u, "enabled"):
-            frappe.db.set_value("User", u, "enabled", 0)
-            disabled.append(u)
-        _rotate_api_secret(u)
-        frappe.db.delete("Parent App Device", {"user": u})
+    if frappe.db.get_value("User", user, "enabled"):
+        frappe.db.set_value("User", user, "enabled", 0)
+        disabled.append(user)
+    rotate_api_secret(user)
+    frappe.db.delete("Parent App Device", {"user": user})
     return disabled
 
 
@@ -147,8 +117,8 @@ def _report(result):
         frappe.msgprint(_("Login details e-mailed to {0}.").format(result["user"]), alert=True)
 
 
-def _check_strength(password, email):
-    if len(password) < 8:
+def check_strength(password, email):
+    if len(password or "") < 8:
         frappe.throw(_("The password must have at least 8 characters."), title=_("Parent App"))
     from frappe.core.doctype.user.user import test_password_strength
 
@@ -159,23 +129,22 @@ def _check_strength(password, email):
 
 
 # ── core ─────────────────────────────────────────────────────────────────────
-def enable_access(customer, password=None, send_email=False, login=None, additional=False):
-    """Create / update the parent's login for a Customer. Returns what happened.
-
-    additional=True adds another login to the family (Portal Users) and leaves
-    the Customer's main Parent App login as it is."""
-    cust = customer if not isinstance(customer, str) else frappe.get_doc("Customer", customer)
-    login = (login or cust.get("bc_parent_login") or cust.email_id or "").strip().lower()
+def enable_access(profile, password=None, send_email=False, login=None):
+    """Create / update the app login of a Parent Profile. Returns what happened."""
+    doc = profile if not isinstance(profile, str) else frappe.get_doc(DT, profile)
+    login = (login or doc.get("app_login") or doc.email or "").strip().lower()
     if not login or not validate_email_address(login):
-        frappe.throw(_("Customer {0} has no valid e-mail for the Parent App login.").format(cust.name))
-    result = {"customer": cust.name, "user": login, "created": False, "renamed": False,
+        frappe.throw(_("Parent {0} has no valid e-mail for the Parent App login.").format(doc.full_name or doc.name))
+    result = {"parent": doc.name, "user": login, "created": False, "renamed": False,
               "password_generated": None, "password_changed": False, "emailed": False}
 
-    current = None if additional else cust.get("bc_parent_user")
+    current = doc.get("user")
     if current and current != login and frappe.db.exists("User", current) and not frappe.db.exists("User", login):
         frappe.rename_doc("User", current, login, force=True, show_alert=False)
         frappe.db.set_value("User", login, "email", login)
         result["renamed"] = True
+    elif current and current != login and frappe.db.exists("User", current):
+        disable_access(doc.name)  # moving to another existing account: retire the old one
 
     if frappe.db.exists("User", login):
         user = frappe.get_doc("User", login)
@@ -185,12 +154,14 @@ def enable_access(customer, password=None, send_email=False, login=None, additio
             user.enabled = 1
             user.save(ignore_permissions=True)
     else:
-        names = (cust.customer_name or login).split(" ", 1)
         user = frappe.get_doc({
             "doctype": "User",
             "email": login,
-            "first_name": names[0][:140],
-            "last_name": names[1][:140] if len(names) > 1 else "",
+            "first_name": (doc.first_name or login)[:140],
+            "last_name": (doc.last_name or "")[:140],
+            # User.mobile_no is unique in Frappe: copy it only when no other user has it
+            "mobile_no": doc.mobile_no if doc.mobile_no and not frappe.db.exists("User", {"mobile_no": doc.mobile_no}) else None,
+            "language": doc.preferred_language,
             "user_type": "Website User",
             "send_welcome_email": 0,
             "enabled": 1,
@@ -211,37 +182,27 @@ def enable_access(customer, password=None, send_email=False, login=None, additio
         from frappe.utils.password import update_password
 
         update_password(user.name, password)
-        _rotate_api_secret(user.name)  # sign out the old mobile sessions
+        rotate_api_secret(user.name)  # sign out the old mobile sessions
         result["password_changed"] = not result["password_generated"]
 
-    # Portal Users link (what the Parent API reads)
-    linked = frappe.get_all("Portal User", filters={"parent": cust.name, "parenttype": "Customer"}, pluck="user")
-    if user.name not in linked:
-        portal = frappe.get_doc({"doctype": "Portal User", "parent": cust.name, "parenttype": "Customer",
-                                 "parentfield": "portal_users", "user": user.name, "idx": len(linked) + 1})
-        portal.db_insert()
-    if current and current != user.name and not result["renamed"]:
-        frappe.db.delete("Portal User", {"parent": cust.name, "parenttype": "Customer", "user": current})
-
-    if not (additional and cust.get("bc_parent_user")):
-        frappe.db.set_value("Customer", cust.name, {"bc_parent_app_access": 1, "bc_parent_login": user.name, "bc_parent_user": user.name},
-                            update_modified=False)
+    frappe.db.set_value(DT, doc.name, {"app_access": 1, "app_login": user.name, "user": user.name}, update_modified=False)
+    doc.user = user.name
     if send_email:
-        result["emailed"] = _send_credentials(cust, user.name, password)
+        result["emailed"] = _send_credentials(doc, user.name, password)
     return result
 
 
-def _rotate_api_secret(user):
+def rotate_api_secret(user):
     if frappe.db.get_value("User", user, "api_key"):
         from frappe.utils.password import set_encrypted_password
 
         set_encrypted_password("User", user, frappe.generate_hash(length=15), "api_secret")
 
 
-def _send_credentials(cust, user, password):
+def _send_credentials(doc, user, password):
     app = frappe.db.get_single_value("Nursery Settings", "facility_name") or _("Baby Care")
     lines = [
-        _("Hello {0},").format(escape_html(cust.customer_name or "")),
+        _("Hello {0},").format(escape_html(doc.full_name or "")),
         _("You can now follow your children with the {0} mobile app.").format(escape_html(app)),
         "<b>{0}</b> {1}<br><b>{2}</b> {3}".format(_("Server:"), escape_html(get_url()), _("Login:"), escape_html(user)),
     ]
@@ -264,20 +225,18 @@ def _send_credentials(cust, user, password):
 def child_on_update(doc, method=None):
     if not cint(frappe.db.get_single_value("Nursery Settings", "auto_create_parent_login")):
         return
-    if not frappe.get_meta("Customer").has_field("bc_parent_app_access"):
-        return
     for row in doc.get("parents") or []:
-        info = frappe.db.get_value("Customer", row.parent_customer,
-                                   ["name", "email_id", "bc_parent_app_access", "bc_parent_user"], as_dict=True)
-        if not info or info.bc_parent_user or info.bc_parent_app_access is None:
+        info = frappe.db.get_value(DT, row.parent_profile, ["name", "email", "app_access", "app_login", "user", "is_active"], as_dict=True)
+        if not info or info.user or not cint(info.is_active):
             continue
-        if cint(info.bc_parent_app_access) == 0 and frappe.db.get_value("Customer", info.name, "bc_parent_login"):
+        if not cint(info.app_access) and info.app_login:
             continue  # access was switched off on purpose
-        email = (info.email_id or "").strip().lower()
+        email = (info.email or "").strip().lower()
         if not email or not validate_email_address(email):
             continue
-        owner_type = frappe.db.get_value("User", email, "user_type")
-        if owner_type == "System User":
+        if frappe.db.get_value("User", email, "user_type") == "System User":
+            continue
+        if frappe.db.get_value(DT, {"user": email, "name": ("!=", info.name)}):
             continue
         try:
             _report(enable_access(info.name, login=email))
@@ -285,21 +244,21 @@ def child_on_update(doc, method=None):
             frappe.log_error(title=f"Baby Care: automatic parent login failed for {info.name}")
 
 
-# ── staff API (Customer form buttons) ────────────────────────────────────────
+# ── staff API (Parent Profile form button) ───────────────────────────────────
 @frappe.whitelist(methods=["POST"])
-def reset_parent_password(customer, password=None, send_email=0):
+def reset_parent_password(parent_profile, password=None, send_email=0):
     """Set a new password (or generate one) for the parent's app login."""
-    frappe.has_permission("Customer", "write", customer, throw=True)
-    cust = frappe.get_doc("Customer", customer)
-    if not cint(cust.get("bc_parent_app_access")) or not cust.get("bc_parent_user"):
-        frappe.throw(_("Enable Parent App access for this customer first."))
+    frappe.has_permission(DT, "write", parent_profile, throw=True)
+    doc = frappe.get_doc(DT, parent_profile)
+    if not cint(doc.app_access) or not doc.user:
+        frappe.throw(_("Enable Parent App access for this parent first."))
     generated = None
     if not password:
         password = generated = generate_password()
-    _check_strength(password, cust.bc_parent_user)
+    check_strength(password, doc.user)
     from frappe.utils.password import update_password
 
-    update_password(cust.bc_parent_user, password)
-    _rotate_api_secret(cust.bc_parent_user)
-    emailed = _send_credentials(cust, cust.bc_parent_user, password) if cint(send_email) else False
-    return {"user": cust.bc_parent_user, "password": generated, "emailed": emailed}
+    update_password(doc.user, password)
+    rotate_api_secret(doc.user)
+    emailed = _send_credentials(doc, doc.user, password) if cint(send_email) else False
+    return {"user": doc.user, "password": generated, "emailed": emailed}

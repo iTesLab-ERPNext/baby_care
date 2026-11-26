@@ -8,21 +8,18 @@
   "facility_name",
   "facility_type",
   "col_break_1",
-  "default_company",
   "default_currency",
   "billing_section",
-  "default_income_account",
-  "default_cost_center",
   "col_break_2",
-  "default_payment_terms",
   "invoice_due_days",
   "allow_partial_payment",
   "col_break_3",
   "auto_generate_invoices",
   "auto_submit_invoices",
-  "default_item_group",
   "invoice_generation_day",
   "multi_child_discount_percent",
+  "default_tax_rate",
+  "invoice_footer",
   "enrollment_section",
   "require_medical_record",
   "require_birth_certificate",
@@ -67,44 +64,21 @@
    "fieldtype": "Column Break"
   },
   {
-   "fieldname": "default_company",
-   "fieldtype": "Link",
-   "label": "Default Company",
-   "options": "Company",
-   "reqd": 1
-  },
-  {
    "fieldname": "default_currency",
    "fieldtype": "Link",
    "label": "Default Currency",
-   "options": "Currency"
+   "options": "Currency",
+   "reqd": 0,
+   "description": "Currency of invoices and payments, e.g. TND."
   },
   {
    "fieldname": "billing_section",
    "fieldtype": "Section Break",
-   "label": "Billing & Accounting"
-  },
-  {
-   "fieldname": "default_income_account",
-   "fieldtype": "Link",
-   "label": "Default Income Account",
-   "options": "Account"
-  },
-  {
-   "fieldname": "default_cost_center",
-   "fieldtype": "Link",
-   "label": "Default Cost Center",
-   "options": "Cost Center"
+   "label": "Billing"
   },
   {
    "fieldname": "col_break_2",
    "fieldtype": "Column Break"
-  },
-  {
-   "fieldname": "default_payment_terms",
-   "fieldtype": "Link",
-   "label": "Default Payment Terms",
-   "options": "Payment Terms Template"
   },
   {
    "fieldname": "invoice_due_days",
@@ -135,12 +109,6 @@
    "default": "1"
   },
   {
-   "fieldname": "default_item_group",
-   "fieldtype": "Link",
-   "label": "Item Group for Nursery Items",
-   "options": "Item Group"
-  },
-  {
    "fieldname": "invoice_generation_day",
    "fieldtype": "Int",
    "label": "Invoice Lead Time (days before billing date)",
@@ -153,6 +121,18 @@
    "label": "Multi-Child Discount (%)",
    "default": "0",
    "description": "Discount applied when a parent enrolls more than one child"
+  },
+  {
+   "fieldname": "default_tax_rate",
+   "fieldtype": "Percent",
+   "label": "Default Tax (%)",
+   "description": "Applied to new invoices unless the plan sets its own."
+  },
+  {
+   "fieldname": "invoice_footer",
+   "fieldtype": "Small Text",
+   "label": "Payment Instructions",
+   "description": "Printed on invoices and shown to parents (bank account, where to pay…)."
   },
   {
    "fieldname": "enrollment_section",
@@ -266,7 +246,7 @@
   }
  ],
  "issingle": 1,
- "modified": "2026-11-26 17:00:00.000000",
+ "modified": "2026-11-26 00:00:00.000000",
  "modified_by": "Administrator",
  "module": "Baby Care Management",
  "name": "Nursery Settings",

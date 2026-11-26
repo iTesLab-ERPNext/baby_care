@@ -1,11 +1,14 @@
 # Baby Care Management
 
-Nursery, daycare, kindergarten and baby-care centre management for **ERPNext v15 and v16**.
-Parents are ERPNext **Customers**, billing uses ERPNext **Sales Invoice** and **Payment Entry**,
-and every rule that varies between facilities is configuration, not code.
+Nursery, daycare, kindergarten and baby-care centre management on the **Frappe Framework (v15 / v16)**.
+Since 2.0 the app is **independent of ERPNext**: parents, invoices and payments are the app's own
+DocTypes (*Parent Profile*, *Nursery Invoice*, *Nursery Payment*). Only Frappe's own users, roles and
+login are shared with the rest of the site. Every rule that varies between facilities is
+configuration, not code.
 
-Version 1.6.0 is tested end-to-end on Frappe v15 + ERPNext v15: fresh install, upgrade from
-1.0, uninstall, 42 automated tests, a 44-check role-permission audit and a browser test that opens every form for every role.
+Version 2.0.0 is tested end-to-end on a Frappe v15 site **without ERPNext**: fresh install, 49
+automated tests, the Parent API (38 HTTP checks), the parent mobile app (23 browser checks) and a
+desk walk-through (30 checks); and as an upgrade of a 1.6 site that has ERPNext installed.
 
 ---
 
@@ -21,12 +24,26 @@ bench build --app baby_care
 bench --site <site> clear-cache
 ```
 
-ERPNext's setup wizard must be completed first (a Company and chart of accounts are needed for invoicing).
+Only the Frappe Framework is required (complete Frappe's setup wizard so a default currency exists).
+ERPNext may be installed on the same site; Baby Care simply does not use it.
 
-### Upgrading from 1.0
+### Upgrading from 1.x (ERPNext) to 2.0
 
-Replace the app folder and run `bench --site <site> migrate`. The old workspace is replaced, existing
-children keep their names (new children are numbered `CHILD-00001`), and no data is removed.
+`git pull` (or replace the app folder) and run `bench --site <site> migrate`. What changes:
+
+* New DocTypes **Parent Profile**, **Nursery Invoice** (+ items), **Nursery Payment** (+ allocations).
+* Parents are now *Parent Profiles*. The "Parent (Customer)" links on Child, Child Subscription and
+  Child Document become "Parent" links to Parent Profile. **Existing data is not copied** (fresh start):
+  children, subscriptions, attendance, medical records… stay, but their parent link is empty. Create
+  the Parent Profiles and set them on each child; on a submitted subscription without a parent the
+  *Parent* field can be filled in once. Subscriptions without a parent are skipped by the daily
+  invoice job.
+* Invoices and payments are made in the app from now on. Old ERPNext Customers, Sales Invoices and
+  Payment Entries are left untouched in ERPNext and are no longer shown by Baby Care.
+* The app's custom fields on ERPNext's Customer and Sales Invoice are removed, the *Nursery Revenue*
+  chart and all finance cards and reports now read Nursery Invoices.
+* Parent App logins move from the Customer to the Parent Profile (**Parent App** tab): enable them
+  again there. Old parent users keep existing but are no longer linked.
 
 ### First steps
 
@@ -34,8 +51,9 @@ children keep their names (new children are numbered `CHILD-00001`), and no data
    meal plans and a transport route you can edit.
 2. Optional: **Install Test Data** loads tagged demo parents, children, teachers, attendance,
    subscriptions and invoices. **Clear Test Data** removes exactly those records.
-3. **Configuration → Application Settings**: set company, income account, cost centre, invoice due
-   days, family discount, notification windows and the operational switches.
+3. **Configuration → Application Settings**: set the currency, invoice due days, default tax, family
+   discount, payment instructions (printed for parents), notification windows and the operational switches.
+4. **Parents → New**: create a Parent Profile, then **Create → Register Child** from it.
 
 ---
 
@@ -46,11 +64,11 @@ The top of the page shows 8 live number cards and 4 charts, followed by 8 shortc
 | Section | Links |
 |---|---|
 | Dashboard | Overview and statistics, attendance overview, financial overview, plus the full **Baby Care Dashboard** (13 cards, 5 charts) |
-| Parents & Children | Parents (Customer), Children, Enrollment, Classes & Groups, Teacher Assignments, Age Groups |
-| Subscriptions & Billing | Plans, Child Subscriptions, Sales Invoices, Payment Entries, Outstanding Payments, Parent Account Statement |
+| Parents & Children | Parents, Children, Enrollment, Classes & Groups, Teacher Assignments, Age Groups |
+| Subscriptions & Billing | Plans, Child Subscriptions, Invoices, Payments, Outstanding Payments, Parent Account Statement |
 | Health & Documents | Medical Records, Health Incidents, Vaccination Records, Child & Parent Documents, Document Alerts |
 | Services & Activities | Services, Child-Specific Services, Meal Plans, Child Meal Plans, Daily Meal List, Transport |
-| Staff & Attendance | Teachers, Staff (ERPNext Employee), Child Attendance, Daily Attendance Report |
+| Staff & Attendance | Teachers, Child Attendance, Daily Attendance Report |
 | Reports | 9 script reports (below) |
 | Configuration | Settings, plans, categories, transport, classes, age groups, document types, statuses, **Role Permissions Manager**, User Permissions |
 | Data Management | Seed / test data page |
@@ -134,11 +152,11 @@ A read-only REST API for parents.
 
 All URLs are `/api/method/baby_care.api.v1.<endpoint>`; results are wrapped in `message`.
 
-**Giving a parent access:** open the parent (Customer) → **Parent App** tab (or the **Enable
+**Giving a parent access:** open the Parent Profile → **Parent App** tab (or the **Enable
 Parent App** button). See *Parent mobile app* below.
 
 **Security:**
-* a parent only ever sees the children and accounts of the Customers they are linked to; another
+* a parent only ever sees the children, invoices and payments of their own Parent Profile; another
   family's child or invoice answers `404`, so records cannot be probed;
 * everything except `login` / `logout` is GET-only; POSTs with a session need the CSRF token;
 * `login` and `app_login` are limited to 10 attempts per 5 minutes per IP;
@@ -153,26 +171,26 @@ Parent App** button). See *Parent mobile app* below.
 A React Native / **Expo SDK 58** app for parents ships in the separate `babycare-parent` project
 (see its README for building it). It uses the Parent API above.
 
-**Logins are managed on the parent's Customer**, new **Parent App** tab:
+**Logins are managed on the Parent Profile**, **Parent App** tab (one login per parent):
 
 | Field | |
 |---|---|
 | Enable Parent App Access | switches the login on / off. Off disables the user and signs out every phone. |
-| App Login (e-mail) | the username. Defaults to the Customer's e-mail. Changing it renames the user (password kept). |
-| Set / Change Password | type a password and save. It is applied to the user and **never stored on the Customer**. Minimum 8 characters + the site's password policy. |
+| App Login (e-mail) | the username. Defaults to the parent's e-mail. Changing it renames the user (password kept). |
+| Set / Change Password | type a password and save. It is applied to the user and **never stored on the profile**. Minimum 8 characters + the site's password policy. |
 | E-mail the login details to the parent | sends the login (and a generated password, if one was made) on save. |
-| Linked App User | read-only: the User created for the parent. |
+| Linked App User | read-only: the Frappe User created for the parent. |
 
-* **Automatic creation:** when a child is saved, every parent (Customer) of that child that has an
-  e-mail and no app login gets one: a *Website User* (no desk) with the **Nursery Parent** role,
-  linked in the Customer's *Portal Users*. A generated password is shown **once** to the staff
-  member. Switch this off in **Nursery Settings → Parent App**. A Customer that is not a parent of a
-  child is never touched, and an access you switched off is not re-enabled.
-* **Generate New App Password** button on the Customer: new random password, shown once; the parent
-  is signed out on every phone.
-* **Several logins for one family** (e.g. both parents on one Customer): the existing
-  `baby_care.baby_care_management.api.parents.create_parent_user` adds another Portal User without
-  touching the main login. Usually each parent is their own Customer, linked on the child.
+* **Automatic creation:** when a child is saved, every active parent of that child that has an
+  e-mail and no app login gets one: a Frappe *Website User* (no desk) with the **Nursery Parent**
+  role, linked in the profile's *Linked App User*. A generated password is shown **once** to the
+  staff member. Switch this off in **Nursery Settings → Parent App**. An access you switched off is
+  not re-enabled.
+* **Generate New App Password** (Parent App menu on the profile): new random password, shown once;
+  the parent is signed out on every phone.
+* **Two parents of one child** = two Parent Profiles linked on the child, each with its own login;
+  both see the same child. An e-mail can be the login of one profile only.
+* Deactivating or deleting a profile also switches its login off.
 
 **How the app signs in:** `app_login` checks the password with Frappe's own login checks (lockout,
 disabled users) and returns `api_key:api_secret` for `Authorization: token …`; no cookie or CSRF.
@@ -226,10 +244,10 @@ How it is enforced, all on the server:
   assigned children in list views, forms, direct URLs, reports, link search and `/api/resource`.
   They never grant access. If an administrator later gives teachers access to medical records,
   teachers still see only their own children's records.
-* Install adds the nursery roles to ERPNext's Customer, Sales Invoice and Payment Entry, and only
-  when the role has no rule there yet, plus the light *select* right on Account, Customer Group,
-  Territory and Company so parents open without errors. Give accountants ERPNext's **Accounts User** role as well,
-  and receptionists **Sales User**, so the linked ERPNext masters open for them.
+* **Parent Profile**: administrators full; accountants and receptionists create and edit;
+  teachers and medical staff read only. **Nursery Invoice**: administrators and accountants
+  (receptionists read). **Nursery Payment**: administrators, accountants and receptionists can
+  record and submit payments.
 
 ---
 
@@ -238,13 +256,20 @@ How it is enforced, all on the server:
 * Each Child Subscription is a submittable document: Draft → Active / Pending → Suspended / Expired / Cancelled.
 * Its amount is the plan price, plus optional services, minus the discount. The family discount
   (Settings, or a per-plan override) is applied automatically to a second or further child of the same parent.
-* **Generate Invoice** (or the daily job, when *Auto Generate Invoices* is on) creates a Sales Invoice
-  for the next billing period. It carries a plan line, service lines, a transport line for the period,
-  and the plan's ERPNext tax template.
-* The invoice records the child, subscription and billing period in custom fields, so a period can
-  never be invoiced twice. Cancelled or expired subscriptions are never invoiced.
-* Payment Entries update each subscription's invoice status automatically.
+* **Generate Invoice** (or the daily job, when *Auto Generate Invoices* is on) creates a **Nursery
+  Invoice** for the next billing period: a plan line, service lines and a transport line for the
+  period, the subscription's discount and the plan's tax (or the default tax of the settings).
+  A billing period can never be invoiced twice. Cancelled or expired subscriptions are never invoiced.
+* Invoices can also be made by hand (any lines, discount %, tax %). Status: Draft → Unpaid →
+  Partly Paid → Paid, or Overdue after the due date; Cancelled.
+* **Nursery Payment** records money received (cash, transfer, card, cheque, mobile payment). It is
+  allocated to invoices of that parent: pick them, use **Get Unpaid Invoices**, or leave the table
+  empty to settle the oldest due first. Anything not allocated stays as a **credit** of the parent.
+  **Record Payment** on an invoice opens a payment already filled in.
+* Paid amount, outstanding amount and status of each invoice, and of the subscription's invoice
+  list, follow the submitted payments. Cancel the payments before cancelling an invoice.
 * Renew, Suspend and Resume are buttons on the subscription. Auto-Renew plans renew in the daily job.
+* There is no accounting ledger: if you need one, export the invoices and payments lists.
 
 ## Daily jobs and notifications
 
@@ -271,12 +296,16 @@ bench --site <site> set-config allow_tests true
 bench --site <site> run-tests --module baby_care.tests.test_baby_care
 ```
 
-42 integration tests cover workspace integrity and desk rendering, number cards, invoice amounts and
-family discount, duplicate-period protection, payment status sync, overlap and parent checks,
+49 integration tests cover workspace integrity and desk rendering, number cards, invoice amounts and
+family discount, duplicate-period protection, partial / full / over-payments, oldest-first allocation
+and credit, tax and discount, overdue status, invoice cancel rules, overlap and parent checks,
 suspend/resume/renew, the business rules above, scheduler de-duplication and expiry, role access,
 schema guards (valid table fields, no currency on count widgets), the Parent API family isolation,
 and the Parent App credentials (password from the form, weak/staff logins refused, login rename,
-token rotation, device registration, disabling, ordinary customers untouched).
+token rotation, device registration, disabling, automatic logins), the 1.x upgrade case (subscription
+without parent) and a guard that no DocType of the app links to an ERPNext DocType.
+
+Run them on any Frappe site; ERPNext is not needed.
 
 ## Languages
 

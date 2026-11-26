@@ -76,10 +76,10 @@ def get_authorized_pickups(child):
 def authorized_pickup_names(child):
     names = frappe.get_all("Child Authorized Pickup", filters={"parent": child, "parenttype": "Child"}, pluck="full_name")
     for row in frappe.get_all(
-        "Child Parent Link", filters={"parent": child, "parenttype": "Child"}, fields=["parent_customer", "can_pickup", "is_primary"]
+        "Child Parent Link", filters={"parent": child, "parenttype": "Child"}, fields=["parent_profile", "can_pickup", "is_primary"]
     ):
         if row.can_pickup or row.is_primary:
-            names.append(frappe.db.get_value("Customer", row.parent_customer, "customer_name") or row.parent_customer)
+            names.append(frappe.db.get_value("Parent Profile", row.parent_profile, "full_name") or row.parent_profile)
     return [n.strip() for n in names if n]
 
 

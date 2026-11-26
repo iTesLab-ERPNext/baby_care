@@ -5,9 +5,9 @@ Baby Care — Parent API v1
 URL:  /api/method/baby_care.api.v1.<endpoint>
 Docs: /parent-api   (OpenAPI JSON: /api/method/baby_care.api.v1.openapi)
 
-A *parent* is a Website User listed in the **Portal Users** table of one or
-more Customers (or linked to them through a Contact). Every endpoint works
-only on the children and accounts of those Customers; anything else is
+A *parent* is a Frappe Website User linked to a **Parent Profile** (its
+``user`` field, set from the profile's "Parent App" tab). Every endpoint works
+only on the children, invoices and payments of that profile; anything else is
 reported as "not found" so records cannot be probed.
 """
 import json
@@ -41,39 +41,33 @@ def _require_login():
         frappe.throw(_("Please log in."), frappe.AuthenticationError)
 
 
-def parent_customers(user=None):
-    """Customers this user may act for (Portal Users table, then Contact links)."""
+def parent_profiles(user=None):
+    """Parent Profiles this user may act for (active profiles with app access)."""
     user = user or frappe.session.user
-    customers = set(frappe.get_all("Portal User", filters={"user": user, "parenttype": "Customer"}, pluck="parent"))
-    contacts = frappe.get_all("Contact", filters={"user": user}, pluck="name")
-    if contacts:
-        customers.update(frappe.get_all(
-            "Dynamic Link",
-            filters={"parenttype": "Contact", "parent": ("in", contacts), "link_doctype": "Customer"},
-            pluck="link_name",
-        ))
-    return sorted(c for c in customers if frappe.db.exists("Customer", c))
+    if not user or user == "Guest":
+        return []
+    return sorted(frappe.get_all("Parent Profile", filters={"user": user, "app_access": 1, "is_active": 1}, pluck="name"))
 
 
-def _customers():
+def _parents():
     _require_login()
-    customers = parent_customers()
-    if not customers:
+    parents = parent_profiles()
+    if not parents:
         frappe.throw(_("This account is not linked to a parent profile."), frappe.PermissionError)
-    return customers
+    return parents
 
 
-def _child_links(customers):
+def _child_links(parents):
     return frappe.get_all(
         "Child Parent Link",
-        filters={"parenttype": "Child", "parent_customer": ("in", customers)},
-        fields=["parent as child", "relationship", "is_primary", "can_pickup", "parent_customer"],
+        filters={"parenttype": "Child", "parent_profile": ("in", parents)},
+        fields=["parent as child", "relationship", "is_primary", "can_pickup", "parent_profile"],
     )
 
 
-def _my_children(customers=None):
-    customers = customers or _customers()
-    return sorted({row.child for row in _child_links(customers)})
+def _my_children(parents=None):
+    parents = parents or _parents()
+    return sorted({row.child for row in _child_links(parents)})
 
 
 def _own_child(child):
@@ -127,8 +121,8 @@ def login(usr=None, pwd=None):
 
         login_manager = frappe.local.login_manager = LoginManager()
     login_manager.authenticate(user=usr, pwd=pwd)
-    customers = parent_customers(login_manager.user)
-    if not customers:
+    parents = parent_profiles(login_manager.user)
+    if not parents:
         frappe.throw(_("This account is not linked to a parent profile."), frappe.PermissionError)
     login_manager.post_login()
     frappe.local.response.pop("home_page", None)
@@ -140,8 +134,8 @@ def login(usr=None, pwd=None):
         "full_name": frappe.utils.get_fullname(frappe.session.user),
         "sid": frappe.session.sid,
         "csrf_token": get_csrf_token(),
-        "parents": _parents_info(customers),
-        "children": _children_brief(customers),
+        "parents": _parents_info(parents),
+        "children": _children_brief(parents),
     }
 
 
@@ -153,17 +147,17 @@ def logout():
 
 
 # ── profile & children ───────────────────────────────────────────────────────
-def _parents_info(customers):
+def _parents_info(parents):
     return frappe.get_all(
-        "Customer",
-        filters={"name": ("in", customers)},
-        fields=["name as customer", "customer_name", "mobile_no", "email_id"],
-        order_by="customer_name asc",
+        "Parent Profile",
+        filters={"name": ("in", parents)},
+        fields=["name as parent", "full_name", "relationship", "mobile_no", "email"],
+        order_by="full_name asc",
     )
 
 
-def _children_brief(customers):
-    names = _my_children(customers)
+def _children_brief(parents):
+    names = _my_children(parents)
     if not names:
         return []
     return frappe.get_all("Child", filters={"name": ("in", names)}, fields=["name as child", "full_name"], order_by="full_name asc")
@@ -171,23 +165,23 @@ def _children_brief(customers):
 
 @frappe.whitelist(methods=["GET"])
 def me():
-    customers = _customers()
+    parents = _parents()
     from frappe.sessions import get_csrf_token
 
     return {
         "user": frappe.session.user,
         "full_name": frappe.utils.get_fullname(frappe.session.user),
         "csrf_token": get_csrf_token() if frappe.session.sid and frappe.session.sid != "Guest" else None,
-        "parents": _parents_info(customers),
-        "children": _children_brief(customers),
+        "parents": _parents_info(parents),
+        "children": _children_brief(parents),
     }
 
 
 @frappe.whitelist(methods=["GET"])
 def children():
-    customers = _customers()
+    parents = _parents()
     links = {}
-    for row in _child_links(customers):
+    for row in _child_links(parents):
         links.setdefault(row.child, row)
     if not links:
         return []
@@ -237,7 +231,7 @@ def child(child=None):
         "age_group": doc.age_group,
         "teachers": teachers,
         "special_instructions": doc.special_instructions,
-        "parents": [{"customer": p.parent_customer, "relationship": p.relationship, "is_primary": p.is_primary, "can_pickup": p.can_pickup} for p in doc.parents],
+        "parents": [{"parent": p.parent_profile, "full_name": p.parent_name, "relationship": p.relationship, "is_primary": p.is_primary, "can_pickup": p.can_pickup} for p in doc.parents],
         "emergency_contacts": [{"full_name": c.full_name, "relationship": c.relationship, "phone": c.phone, "phone_alt": c.phone_alt} for c in doc.emergency_contacts],
         "authorized_pickups": [{"full_name": c.full_name, "relationship": c.relationship, "phone": c.phone} for c in doc.authorized_pickups],
         "allergies": allergies,
@@ -366,8 +360,8 @@ def child_tracking(child=None, date=None):
 # ── billing ──────────────────────────────────────────────────────────────────
 @frappe.whitelist(methods=["GET"])
 def subscriptions(child=None):
-    customers = _customers()
-    filters = {"parent_customer": ("in", customers), "docstatus": 1}
+    parents = _parents()
+    filters = {"parent_profile": ("in", parents), "docstatus": 1}
     if child:
         filters["child"] = _own_child(child)
     rows = frappe.get_all(
@@ -391,106 +385,101 @@ _INVOICE_STATUS = {
 }
 
 
+_INV_FIELDS = ["name", "posting_date as date", "due_date", "parent_profile as parent", "child", "billing_period",
+               "grand_total", "paid_amount", "outstanding_amount", "status", "currency"]
+
+
 @frappe.whitelist(methods=["GET"])
 def invoices(status="all", child=None, limit=None, start=None):
-    customers = _customers()
+    parents = _parents()
     status = (status or "all").lower()
     if status not in _INVOICE_STATUS:
         frappe.throw(_("status must be one of: {0}").format(", ".join(_INVOICE_STATUS)), frappe.ValidationError)
     limit, start = _paging(limit, start)
-    filters = {"customer": ("in", customers), "docstatus": 1, **_INVOICE_STATUS[status]}
-    if status == "overdue":
-        filters["due_date"] = ("<", today())
+    filters = {"parent_profile": ("in", parents), "docstatus": 1, **_INVOICE_STATUS[status]}
     if child:
-        filters["baby_care_child"] = _own_child(child)
-    return frappe.get_all(
-        "Sales Invoice",
-        filters=filters,
-        fields=["name", "posting_date as date", "due_date", "customer", "baby_care_child as child", "baby_care_billing_period as billing_period",
-                "grand_total", "outstanding_amount", "status", "currency", "is_return"],
-        order_by="posting_date desc, name desc",
-        limit_start=start,
-        limit_page_length=limit,
-    )
+        filters["child"] = _own_child(child)
+    return frappe.get_all("Nursery Invoice", filters=filters, fields=_INV_FIELDS,
+                          order_by="posting_date desc, name desc", limit_start=start, limit_page_length=limit)
 
 
 @frappe.whitelist(methods=["GET"])
 def invoice(name=None):
-    customers = _customers()
+    parents = _parents()
     if not name:
         frappe.throw(_("Parameter 'name' is required."), frappe.ValidationError)
-    si = frappe.db.get_value("Sales Invoice", name, ["name", "customer", "docstatus"], as_dict=True)
-    if not si or si.customer not in customers or si.docstatus != 1:
+    inv = frappe.db.get_value("Nursery Invoice", name, ["name", "parent_profile", "docstatus"], as_dict=True)
+    if not inv or inv.parent_profile not in parents or inv.docstatus != 1:
         frappe.throw(_("Invoice {0} not found.").format(name), frappe.DoesNotExistError)
-    doc = frappe.get_doc("Sales Invoice", name)
+    doc = frappe.get_doc("Nursery Invoice", name)
     payments = frappe.db.sql(
-        """select pe.name as payment_entry, pe.posting_date as date, per.allocated_amount as amount, pe.mode_of_payment
-           from `tabPayment Entry Reference` per join `tabPayment Entry` pe on pe.name = per.parent
-           where per.reference_doctype = 'Sales Invoice' and per.reference_name = %s and pe.docstatus = 1
-           order by pe.posting_date""",
+        """select p.name as payment, p.payment_date as date, a.allocated_amount as amount, p.mode_of_payment
+           from `tabNursery Payment Allocation` a join `tabNursery Payment` p on p.name = a.parent
+           where a.parenttype = 'Nursery Payment' and a.invoice = %s and p.docstatus = 1
+           order by p.payment_date""",
         name, as_dict=True,
     )
+    taxes = [{"description": _("Tax {0}%").format(flt(doc.tax_rate)), "rate": flt(doc.tax_rate), "amount": doc.tax_amount}] if flt(doc.tax_amount) else []
     return {
         "name": doc.name,
         "date": doc.posting_date,
         "due_date": doc.due_date,
-        "customer": doc.customer,
-        "child": doc.get("baby_care_child"),
-        "billing_period": doc.get("baby_care_billing_period"),
+        "parent": doc.parent_profile,
+        "child": doc.child,
+        "billing_period": doc.billing_period,
         "currency": doc.currency,
-        "net_total": doc.net_total,
+        "net_total": doc.total,
         "discount_amount": doc.discount_amount,
-        "total_taxes": doc.total_taxes_and_charges,
+        "total_taxes": doc.tax_amount,
         "grand_total": doc.grand_total,
+        "paid_amount": doc.paid_amount,
         "outstanding_amount": doc.outstanding_amount,
         "status": doc.status,
-        "items": [{"item": i.item_name, "description": i.description, "qty": i.qty, "rate": i.rate, "amount": i.amount} for i in doc.items],
-        "taxes": [{"description": t.description, "rate": t.rate, "amount": t.tax_amount} for t in doc.taxes],
+        "items": [{"item": i.service, "description": i.description, "qty": i.qty, "rate": i.rate, "amount": i.amount} for i in doc.items],
+        "taxes": taxes,
         "payments": payments,
+        "payment_instructions": frappe.db.get_single_value("Nursery Settings", "invoice_footer"),
     }
 
 
 @frappe.whitelist(methods=["GET"])
 def payments(limit=None, start=None):
-    customers = _customers()
+    parents = _parents()
     limit, start = _paging(limit, start)
     rows = frappe.get_all(
-        "Payment Entry",
-        filters={"party_type": "Customer", "party": ("in", customers), "docstatus": 1, "payment_type": "Receive"},
-        fields=["name", "posting_date as date", "paid_amount as amount", "mode_of_payment", "reference_no", "reference_date",
-                "paid_from_account_currency as currency", "party as customer"],
-        order_by="posting_date desc, name desc",
+        "Nursery Payment",
+        filters={"parent_profile": ("in", parents), "docstatus": 1},
+        fields=["name", "payment_date as date", "amount", "mode_of_payment", "reference_no", "reference_date", "currency",
+                "parent_profile as parent", "unallocated_amount"],
+        order_by="payment_date desc, name desc",
         limit_start=start,
         limit_page_length=limit,
     )
     for r in rows:
-        r.invoices = frappe.get_all(
-            "Payment Entry Reference",
-            filters={"parent": r.name, "parenttype": "Payment Entry", "reference_doctype": "Sales Invoice"},
-            fields=["reference_name as invoice", "allocated_amount"],
-        )
+        r.invoices = frappe.get_all("Nursery Payment Allocation", filters={"parent": r.name, "parenttype": "Nursery Payment"},
+                                    fields=["invoice", "allocated_amount"], order_by="idx")
     return rows
 
 
 @frappe.whitelist(methods=["GET"])
 def balance():
-    customers = _customers()
-    rows = frappe.get_all(
-        "Sales Invoice",
-        filters={"customer": ("in", customers), "docstatus": 1},
-        fields=["grand_total", "outstanding_amount", "due_date", "currency", "baby_care_child as child"],
-    )
+    parents = _parents()
+    rows = frappe.get_all("Nursery Invoice", filters={"parent_profile": ("in", parents), "docstatus": 1},
+                          fields=["grand_total", "outstanding_amount", "due_date", "currency", "child"])
     t = getdate(today())
+    from baby_care.baby_care_management.utils.billing import default_currency, parent_credit
+
     out = {
-        "currency": rows[0].currency if rows else None,
+        "currency": rows[0].currency if rows else default_currency(),
         "invoiced": sum(flt(r.grand_total) for r in rows),
         "outstanding": sum(flt(r.outstanding_amount) for r in rows),
         "overdue": sum(flt(r.outstanding_amount) for r in rows if flt(r.outstanding_amount) > 0 and r.due_date and getdate(r.due_date) < t),
+        "credit": sum(parent_credit(p) for p in parents),
     }
     out["paid"] = out["invoiced"] - out["outstanding"]
     due = sorted(getdate(r.due_date) for r in rows if flt(r.outstanding_amount) > 0 and r.due_date and getdate(r.due_date) >= t)
     out["next_due_date"] = due[0] if due else None
-    names = dict(frappe.get_all("Child", filters={"name": ("in", _my_children(customers) or [""])}, fields=["name", "full_name"], as_list=True))
+    names = dict(frappe.get_all("Child", filters={"name": ("in", _my_children(parents) or [""])}, fields=["name", "full_name"], as_list=True))
     per = {}
     for r in rows:
         key = r.child or ""
@@ -535,8 +524,8 @@ def app_login(usr=None, pwd=None, device_name=None):
     lm = _login_manager()
     lm.authenticate(user=(usr or "").strip(), pwd=pwd)
     user = lm.user
-    customers = parent_customers(user)
-    if not customers or "Nursery Parent" not in frappe.get_roles(user):
+    parents = parent_profiles(user)
+    if not parents or "Nursery Parent" not in frappe.get_roles(user):
         frappe.throw(_("This account is not linked to a parent profile."), frappe.PermissionError)
     token = _api_token(user)
     frappe.db.set_value("User", user, "last_login", frappe.utils.now(), update_modified=False)
@@ -545,8 +534,8 @@ def app_login(usr=None, pwd=None, device_name=None):
         "token": token,
         "user": user,
         "full_name": frappe.utils.get_fullname(user),
-        "parents": _parents_info(customers),
-        "children": _children_brief(customers),
+        "parents": _parents_info(parents),
+        "children": _children_brief(parents),
         "app": app_info(),
     }
 
@@ -554,7 +543,7 @@ def app_login(usr=None, pwd=None, device_name=None):
 @frappe.whitelist(methods=["POST"])
 def app_logout(all_devices=0, push_token=None):
     """Forget this phone's push token; with all_devices=1 also invalidate every app token."""
-    _customers()
+    _parents()
     if push_token:
         frappe.db.delete("Parent App Device", {"user": frappe.session.user, "push_token": push_token})
     if cint(all_devices):
@@ -566,7 +555,7 @@ def app_logout(all_devices=0, push_token=None):
 @frappe.whitelist(methods=["POST"])
 def change_password(old_password=None, new_password=None):
     """Change the parent's password. Returns a new token: other phones are signed out."""
-    _customers()
+    _parents()
     if not old_password or not new_password:
         frappe.throw(_("Both 'old_password' and 'new_password' are required."), frappe.ValidationError)
     from frappe.utils.password import check_password, update_password
@@ -578,9 +567,9 @@ def change_password(old_password=None, new_password=None):
         frappe.throw(_("The current password is not correct."), frappe.ValidationError)
     if new_password == old_password:
         frappe.throw(_("Choose a password different from the current one."), frappe.ValidationError)
-    from baby_care.baby_care_management.utils.parent_access import _check_strength
+    from baby_care.baby_care_management.utils.parent_access import check_strength
 
-    _check_strength(new_password, user)
+    check_strength(new_password, user)
     update_password(user, new_password)
     return {"ok": True, "token": _api_token(user, rotate=True)}
 
@@ -602,7 +591,7 @@ def app_info():
 @frappe.whitelist(methods=["POST"])
 def register_device(push_token=None, platform=None, device_name=None, app_version=None):
     """Store this phone's Expo push token so the nursery can notify the parent."""
-    _customers()
+    _parents()
     token = (push_token or "").strip()
     if not token.startswith(("ExponentPushToken[", "ExpoPushToken[")):
         frappe.throw(_("Invalid Expo push token."), frappe.ValidationError)
@@ -621,11 +610,11 @@ def register_device(push_token=None, platform=None, device_name=None, app_versio
 def notifications(days=30, limit=None, start=None):
     """Activity feed for the parent: arrivals and departures, health notes,
     invoices, payments, document and subscription reminders — newest first."""
-    customers = _customers()
+    parents = _parents()
     limit, start = _paging(limit or 50, start)
     days = max(1, min(cint(days) or 30, 180))
     since = add_days(today(), -days)
-    kids = _my_children(customers)
+    kids = _my_children(parents)
     names = dict(frappe.get_all("Child", filters={"name": ("in", kids or [""])}, fields=["name", "first_name"], as_list=True))
     feed = []
     types = _status_types()
@@ -656,21 +645,20 @@ def notifications(days=30, limit=None, start=None):
                                 fields=["name", "child", "document_type", "status", "modified"]):
             add("document", d.name, d.modified, _("Document needed: {0}").format(_(d.document_type)),
                 _("{0} — {1}").format(names.get(d.child), _(d.status)), d.child, d.name)
-    for si in frappe.get_all("Sales Invoice", filters={"customer": ("in", customers), "docstatus": 1, "posting_date": (">=", since)},
-                             fields=["name", "posting_date", "creation", "grand_total", "outstanding_amount", "due_date", "currency", "baby_care_child"]):
+    for si in frappe.get_all("Nursery Invoice", filters={"parent_profile": ("in", parents), "docstatus": 1, "posting_date": (">=", since)},
+                             fields=["name", "posting_date", "creation", "grand_total", "due_date", "currency", "child"]):
         add("invoice", si.name, si.creation, _("New invoice {0}").format(si.name),
-            _("{0} — due {1}").format(_money(si.grand_total, si.currency), formatdate(si.due_date)), si.baby_care_child, si.name)
-    for pe in frappe.get_all("Payment Entry", filters={"party_type": "Customer", "party": ("in", customers), "docstatus": 1,
-                                                       "payment_type": "Receive", "posting_date": (">=", since)},
-                             fields=["name", "creation", "paid_amount", "paid_from_account_currency"]):
+            _("{0} — due {1}").format(_money(si.grand_total, si.currency), formatdate(si.due_date)), si.child, si.name)
+    for pe in frappe.get_all("Nursery Payment", filters={"parent_profile": ("in", parents), "docstatus": 1, "payment_date": (">=", since)},
+                             fields=["name", "creation", "amount", "currency"]):
         add("payment", pe.name, pe.creation, _("Payment received"),
-            _("{0} — thank you").format(_money(pe.paid_amount, pe.paid_from_account_currency)), None, pe.name)
-    for si in frappe.get_all("Sales Invoice", filters={"customer": ("in", customers), "docstatus": 1, "outstanding_amount": (">", 0),
-                                                       "due_date": ("<", today())},
-                             fields=["name", "due_date", "outstanding_amount", "currency", "baby_care_child"]):
+            _("{0} — thank you").format(_money(pe.amount, pe.currency)), None, pe.name)
+    for si in frappe.get_all("Nursery Invoice", filters={"parent_profile": ("in", parents), "docstatus": 1, "outstanding_amount": (">", 0),
+                                                         "due_date": ("<", today())},
+                             fields=["name", "due_date", "outstanding_amount", "currency", "child"]):
         add("overdue", si.name, f"{si.due_date} 09:00:00", _("Invoice {0} is overdue").format(si.name),
-            _("{0} still to pay").format(_money(si.outstanding_amount, si.currency)), si.baby_care_child, si.name)
-    for sub in frappe.get_all("Child Subscription", filters={"parent_customer": ("in", customers), "docstatus": 1, "status": "Active",
+            _("{0} still to pay").format(_money(si.outstanding_amount, si.currency)), si.child, si.name)
+    for sub in frappe.get_all("Child Subscription", filters={"parent_profile": ("in", parents), "docstatus": 1, "status": "Active",
                                                              "end_date": ("between", [today(), add_days(today(), 30)])},
                               fields=["name", "child", "end_date"]):
         add("subscription", sub.name, f"{add_days(sub.end_date, -30)} 09:00:00", _("Subscription ends soon"),

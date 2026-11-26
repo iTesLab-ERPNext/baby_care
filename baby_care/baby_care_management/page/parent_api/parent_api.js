@@ -109,7 +109,7 @@ frappe.pages["parent-api"].on_page_load = function (wrapper) {
 		.then((r) => r.json())
 		.then((spec) => {
 			$body.find(".bc-api-intro").html(
-				__("Read-only API for parents (mobile app / parent portal), version {0}. Every call returns only the logged-in parent's own data. Give a parent access from their Customer record: <b>Baby Care → Create Parent Login</b>.", [esc(spec.info.version)])
+				__("Read-only API for parents (mobile app / parent portal), version {0}. Every call returns only the logged-in parent's own data. Give a parent access from their Parent Profile: <b>Parent App</b> tab.", [esc(spec.info.version)])
 			);
 			Object.entries(spec.paths).forEach(([path, ops]) =>
 				Object.entries(ops).forEach(([m, op]) => {

@@ -1,7 +1,7 @@
 frappe.ui.form.on("Child Subscription", {
 	setup(frm) {
 		frm.set_query("subscription_plan", () => ({ filters: { is_active: 1 } }));
-		frm.set_query("parent_customer", () => {
+		frm.set_query("parent_profile", () => {
 			const parents = frm.__child_parents || [];
 			return parents.length ? { filters: { name: ["in", parents] } } : {};
 		});
@@ -14,9 +14,9 @@ frappe.ui.form.on("Child Subscription", {
 	child(frm) {
 		if (!frm.doc.child) return;
 		frappe.db.get_doc("Child", frm.doc.child).then((c) => {
-			frm.__child_parents = (c.parents || []).map((p) => p.parent_customer);
+			frm.__child_parents = (c.parents || []).map((p) => p.parent_profile);
 			const primary = (c.parents || []).find((p) => p.is_primary) || (c.parents || [])[0];
-			if (primary && !frm.doc.parent_customer) frm.set_value("parent_customer", primary.parent_customer);
+			if (primary && !frm.doc.parent_profile) frm.set_value("parent_profile", primary.parent_profile);
 		});
 	},
 	refresh(frm) {
@@ -34,14 +34,14 @@ frappe.ui.form.on("Child Subscription", {
 			frm.add_custom_button(__("Generate Invoice"), () =>
 				frm.call("generate_invoice").then((r) => {
 					frm.reload_doc();
-					if (r.message) frappe.set_route("Form", "Sales Invoice", r.message);
+					if (r.message) frappe.set_route("Form", "Nursery Invoice", r.message);
 				}), __("Actions"));
 			act("Suspend", "suspend", {}, "reason");
 		}
 		if (frm.doc.status === "Suspended") act("Resume", "resume", {});
 		if (["Active", "Expired", "Suspended"].includes(frm.doc.status)) act("Renew", "renew", {}, __("Extend this subscription by one plan period?"));
-		if (frappe.model.can_read("Sales Invoice"))
-			frm.add_custom_button(__("Invoices"), () => frappe.set_route("List", "Sales Invoice", { baby_care_subscription: frm.doc.name }), __("View"));
+		if (frappe.model.can_read("Nursery Invoice"))
+			frm.add_custom_button(__("Invoices"), () => frappe.set_route("List", "Nursery Invoice", { child_subscription: frm.doc.name }), __("View"));
 	},
 });
 

@@ -4,13 +4,14 @@ Install / migrate entry points.
 Runs on ``after_install`` and on every ``after_migrate``. Each step is
 idempotent:
 
-* roles, custom fields and master data are created only when missing;
-* ERPNext DocType permissions for nursery roles are added only if the role
-  has no permission rule on that DocType yet (so edits made in Role
-  Permissions Manager are never overwritten);
+* roles and master data are created only when missing;
 * number cards, charts and the dashboard are created only when missing;
 * the workspace is rebuilt from ``desk.py`` so navigation always matches the
-  installed version of the app.
+  installed version of the app;
+* sites upgraded from 1.x (which ran on ERPNext) lose the app's old custom
+  fields on ERPNext DocTypes — 2.0 keeps everything in its own DocTypes.
+
+The app needs the Frappe Framework only. Users and roles are Frappe's own.
 """
 import frappe
 
@@ -24,34 +25,12 @@ ROLES = [
     "Nursery Receptionist",
 ]
 
-SALES_INVOICE_FIELDS = [
-    {"fieldname": "baby_care_section", "fieldtype": "Section Break", "label": "Baby Care", "insert_after": "remarks", "collapsible": 1},
-    {"fieldname": "baby_care_child", "fieldtype": "Link", "label": "Child", "options": "Child", "insert_after": "baby_care_section", "read_only": 1, "in_standard_filter": 1},
-    {"fieldname": "baby_care_subscription", "fieldtype": "Link", "label": "Child Subscription", "options": "Child Subscription", "insert_after": "baby_care_child", "read_only": 1, "search_index": 1},
-    {"fieldname": "baby_care_billing_period", "fieldtype": "Data", "label": "Billing Period", "insert_after": "baby_care_subscription", "read_only": 1},
-]
-
-# (DocType, role, permissions) for standard ERPNext DocTypes the nursery
-# roles need. Users still need ERPNext's own roles (e.g. Accounts User,
-# Sales User) to open every linked master — see README.
-_FULL_TX = ["read", "write", "create", "submit", "cancel", "amend", "report", "export", "print", "email", "share"]
-ERPNEXT_PERMISSIONS = [
-    ("Customer", "System Manager", ["read", "write", "create", "delete", "report", "export", "print", "email", "share"]),
-    ("Sales Invoice", "System Manager", _FULL_TX),
-    ("Payment Entry", "System Manager", _FULL_TX),
-    ("Customer", "Nursery Administrator", ["read", "write", "create", "report", "export", "print", "email", "share"]),
-    ("Customer", "Nursery Receptionist", ["read", "write", "create", "report", "print", "email"]),
-    ("Customer", "Nursery Accountant", ["read", "report", "print", "email"]),
-    ("Sales Invoice", "Nursery Administrator", ["read", "write", "create", "submit", "cancel", "amend", "report", "export", "print", "email"]),
-    ("Sales Invoice", "Nursery Accountant", ["read", "write", "create", "submit", "cancel", "amend", "report", "export", "print", "email"]),
-    ("Payment Entry", "Nursery Administrator", ["read", "write", "create", "submit", "cancel", "amend", "report", "export", "print", "email"]),
-    ("Payment Entry", "Nursery Accountant", ["read", "write", "create", "submit", "cancel", "amend", "report", "export", "print", "email"]),
-]
-# Opening a Customer (parent) loads its receivable account and link titles;
-# ERPNext only needs the light "select" right for that, not read access.
-for _dt in ("Account", "Customer Group", "Territory", "Company"):
-    for _role in ("Nursery Administrator", "Nursery Receptionist", "Nursery Accountant"):
-        ERPNEXT_PERMISSIONS.append((_dt, _role, ["select"]))
+# Custom fields 1.x added to ERPNext DocTypes; removed on migrate to 2.0.
+LEGACY_CUSTOM_FIELDS = {
+    "Customer": ["bc_parent_app_tab", "bc_parent_app_access", "bc_parent_login", "bc_parent_password",
+                 "bc_send_credentials", "bc_parent_app_col", "bc_parent_user"],
+    "Sales Invoice": ["baby_care_section", "baby_care_child", "baby_care_subscription", "baby_care_billing_period"],
+}
 
 
 def after_install():
@@ -80,7 +59,7 @@ def run_setup():
     Never call frappe.db.rollback() here: during install-app the DocType sync
     of this very app is still uncommitted and a full rollback would erase it.
     """
-    steps = (ensure_roles, ensure_custom_fields, ensure_master_data, ensure_erpnext_permissions, desk.sync_desk)
+    steps = (ensure_roles, remove_legacy_custom_fields, ensure_master_data, desk.sync_desk)
     for step in steps:
         sp = f"baby_care_{step.__name__}"
         frappe.db.savepoint(sp)
@@ -112,17 +91,12 @@ def ensure_roles():
             frappe.get_doc({"doctype": "Role", "role_name": role, "desk_access": 0 if role in PORTAL_ROLES else 1}).insert(ignore_permissions=True)
 
 
-def ensure_custom_fields():
-    from frappe.custom.doctype.custom_field.custom_field import create_custom_fields
-
-    create_custom_fields({"Sales Invoice": SALES_INVOICE_FIELDS}, ignore_validate=True, update=True)
-
-    # Parent App tab at the end of the Customer form
-    from baby_care.baby_care_management.utils import parent_access
-
-    own = {df["fieldname"] for df in parent_access.FIELDS}
-    std = [df.fieldname for df in frappe.get_meta("Customer").fields if df.fieldname not in own]
-    create_custom_fields({"Customer": parent_access.custom_fields(std[-1])}, ignore_validate=True, update=True)
+def remove_legacy_custom_fields():
+    for doctype, fields in LEGACY_CUSTOM_FIELDS.items():
+        for fieldname in fields:
+            name = f"{doctype}-{fieldname}"
+            if frappe.db.exists("Custom Field", name):
+                frappe.delete_doc("Custom Field", name, ignore_permissions=True, force=True)
 
 
 def ensure_master_data():
@@ -131,38 +105,12 @@ def ensure_master_data():
     install_master_data()
 
 
-def ensure_erpnext_permissions():
-    from frappe.permissions import add_permission, update_permission_property
-
-    for doctype, role, ptypes in ERPNEXT_PERMISSIONS:
-        if not frappe.db.exists("DocType", doctype):
-            continue
-        has_rule = frappe.db.exists("Custom DocPerm", {"parent": doctype, "role": role}) or (
-            not frappe.db.exists("Custom DocPerm", {"parent": doctype})
-            and frappe.db.exists("DocPerm", {"parent": doctype, "role": role})
-        )
-        if has_rule:
-            continue
-        add_permission(doctype, role, 0, ptype=ptypes[0])
-        for ptype in ptypes[1:]:
-            update_permission_property(doctype, role, 0, ptype, 1, validate=False)
-
-
 def before_uninstall():
     from baby_care.baby_care_management.api.seed import _clear_tracked
 
     try:
-        _clear_tracked()  # demo records also live in ERPNext tables (Customer, Sales Invoice)
+        _clear_tracked()
     except Exception:
         frappe.log_error(title="Baby Care: could not clear test data on uninstall")
-    from baby_care.baby_care_management.utils import parent_access
-
-    for df in parent_access.FIELDS:
-        name = f"Customer-{df['fieldname']}"
-        if frappe.db.exists("Custom Field", name):
-            frappe.delete_doc("Custom Field", name, ignore_permissions=True)
-    for df in SALES_INVOICE_FIELDS:
-        name = f"Sales Invoice-{df['fieldname']}"
-        if frappe.db.exists("Custom Field", name):
-            frappe.delete_doc("Custom Field", name, ignore_permissions=True)
+    remove_legacy_custom_fields()
     desk.remove_desk()

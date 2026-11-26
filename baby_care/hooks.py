@@ -3,11 +3,11 @@ from . import __version__ as app_version  # noqa: F401
 app_name = "baby_care"
 app_title = "Baby Care Management"
 app_publisher = "Baby Care"
-app_description = "Nursery, Daycare & Childcare Management for ERPNext v15/v16"
+app_description = "Nursery, Daycare & Childcare Management on the Frappe Framework (v15/v16)"
 app_email = "admin@babycare.example"
 app_license = "MIT"
 
-required_apps = ["frappe", "erpnext"]
+required_apps = ["frappe"]
 
 # Apps screen (/apps) and, on Frappe v16, the desktop icon grid
 add_to_apps_screen = [
@@ -21,10 +21,9 @@ add_to_apps_screen = [
 ]
 
 # ── Install / migrate ────────────────────────────────────────────────────────
-# after_install + after_migrate rebuild the desk assets (workspace, dashboard,
-# number cards, charts), custom fields on Sales Invoice and the initial ERPNext
-# DocType permissions. Each step is idempotent and never overwrites records or
-# permissions an administrator has customised.
+# after_install + after_migrate create the roles and master data and rebuild the
+# desk assets (workspace, dashboard, number cards, charts). Each step is
+# idempotent and never overwrites records an administrator has customised.
 after_install = "baby_care.baby_care_management.setup.install.after_install"
 after_migrate = "baby_care.baby_care_management.setup.install.after_migrate"
 before_uninstall = "baby_care.baby_care_management.setup.install.before_uninstall"
@@ -42,26 +41,7 @@ fixtures = [
 
 # ── DocType events ───────────────────────────────────────────────────────────
 doc_events = {
-    "Sales Invoice": {
-        "on_submit": [
-            "baby_care.baby_care_management.utils.billing.on_sales_invoice_change",
-            "baby_care.baby_care_management.utils.push.on_invoice_submit",
-        ],
-        "on_cancel": "baby_care.baby_care_management.utils.billing.on_sales_invoice_change",
-        "on_update_after_submit": "baby_care.baby_care_management.utils.billing.on_sales_invoice_change",
-    },
-    "Payment Entry": {
-        "on_submit": [
-            "baby_care.baby_care_management.utils.billing.on_payment_entry_change",
-            "baby_care.baby_care_management.utils.push.on_payment_submit",
-        ],
-        "on_cancel": "baby_care.baby_care_management.utils.billing.on_payment_entry_change",
-    },
-    # Parent App: login credentials managed on the Customer (parent) form
-    "Customer": {
-        "validate": "baby_care.baby_care_management.utils.parent_access.customer_validate",
-        "on_update": "baby_care.baby_care_management.utils.parent_access.customer_on_update",
-    },
+    # Parent App: automatic logins when a child is saved
     "Child": {
         "on_update": "baby_care.baby_care_management.utils.parent_access.child_on_update",
     },
@@ -71,6 +51,12 @@ doc_events = {
     },
     "Health Incident": {
         "after_insert": "baby_care.baby_care_management.utils.push.on_incident_insert",
+    },
+    "Nursery Invoice": {
+        "on_submit": "baby_care.baby_care_management.utils.push.on_invoice_submit",
+    },
+    "Nursery Payment": {
+        "on_submit": "baby_care.baby_care_management.utils.push.on_payment_submit",
     },
 }
 
@@ -84,11 +70,6 @@ scheduler_events = {
 
 # ── Boot session ─────────────────────────────────────────────────────────────
 boot_session = "baby_care.baby_care_management.utils.boot.boot_session"
-
-# ── Client scripts bundled with standard DocTypes ────────────────────────────
-doctype_js = {
-    "Customer": "public/js/customer_extension.js",
-}
 
 # ── Row-level permissions (server side) ──────────────────────────────────────
 _perm = "baby_care.baby_care_management.utils.permissions."

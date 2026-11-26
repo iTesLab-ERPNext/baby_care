@@ -50,8 +50,8 @@ def active_parents(filters=None):
     children = frappe.get_list("Child", filters={"enrollment_status": "Active"}, pluck="name", limit_page_length=0)
     if not children:
         return _card(0)
-    parents = frappe.get_all("Child Parent Link", filters={"parenttype": "Child", "parent": ("in", children)}, pluck="parent_customer", distinct=True)
-    return _card(len(set(parents)), route=["List", "Customer"])
+    parents = frappe.get_all("Child Parent Link", filters={"parenttype": "Child", "parent": ("in", children)}, pluck="parent_profile", distinct=True)
+    return _card(len(set(parents)), route=["List", "Parent Profile"])
 
 
 def _attendance_today(status_type):
@@ -87,32 +87,32 @@ def expiring_subscriptions(filters=None):
     return _card(_count("Child Subscription", f), route=["List", "Child Subscription"], route_options={"status": "Active"})
 
 
-_NURSERY_SI = {"docstatus": 1, "baby_care_subscription": ("is", "set")}
+_INV = {"docstatus": 1}
 
 
 @frappe.whitelist()
 def monthly_revenue(filters=None):
-    f = dict(_NURSERY_SI, posting_date=("between", [get_first_day(today()), get_last_day(today())]))
-    return _card(_sum("Sales Invoice", "base_grand_total", f), "Currency", route=["query-report", "Revenue Report"])
+    f = dict(_INV, posting_date=("between", [get_first_day(today()), get_last_day(today())]))
+    return _card(_sum("Nursery Invoice", "grand_total", f), "Currency", route=["query-report", "Revenue Report"])
 
 
 @frappe.whitelist()
 def quarterly_revenue(filters=None):
     start = _quarter_start(today())
-    f = dict(_NURSERY_SI, posting_date=("between", [start, add_days(frappe.utils.add_months(start, 3), -1)]))
-    return _card(_sum("Sales Invoice", "base_grand_total", f), "Currency", route=["query-report", "Revenue Report"])
+    f = dict(_INV, posting_date=("between", [start, add_days(frappe.utils.add_months(start, 3), -1)]))
+    return _card(_sum("Nursery Invoice", "grand_total", f), "Currency", route=["query-report", "Revenue Report"])
 
 
 @frappe.whitelist()
 def outstanding_payments(filters=None):
-    f = dict(_NURSERY_SI, outstanding_amount=(">", 0))
-    return _card(_sum("Sales Invoice", "outstanding_amount", f), "Currency", route=["query-report", "Outstanding Payments"])
+    f = dict(_INV, outstanding_amount=(">", 0))
+    return _card(_sum("Nursery Invoice", "outstanding_amount", f), "Currency", route=["query-report", "Outstanding Payments"])
 
 
 @frappe.whitelist()
 def overdue_invoices(filters=None):
-    f = dict(_NURSERY_SI, outstanding_amount=(">", 0), due_date=("<", today()))
-    return _card(_count("Sales Invoice", f), route=["query-report", "Outstanding Payments"])
+    f = dict(_INV, outstanding_amount=(">", 0), due_date=("<", today()))
+    return _card(_count("Nursery Invoice", f), route=["query-report", "Outstanding Payments"])
 
 
 @frappe.whitelist()

@@ -18,7 +18,7 @@ frappe.ui.form.on("Child", {
 			frappe.model.can_create(doctype) &&
 			frm.add_custom_button(__(label), () => frappe.new_doc(doctype, Object.assign({ child: frm.doc.name }, extra || {})), __("Create"));
 		const primary = (frm.doc.parents || []).find((p) => p.is_primary) || (frm.doc.parents || [])[0];
-		create("Subscription", "Child Subscription", { parent_customer: primary ? primary.parent_customer : "" });
+		create("Subscription", "Child Subscription", { parent_profile: primary ? primary.parent_profile : "" });
 		create("Attendance", "Child Attendance");
 		create("Health Incident", "Health Incident");
 		create("Document", "Child Document", { document_for: "Child" });

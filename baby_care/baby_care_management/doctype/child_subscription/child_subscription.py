@@ -36,18 +36,25 @@ class ChildSubscription(Document):
         self.db_set("status", "Cancelled")
         self._update_child()
 
+    def before_update_after_submit(self):
+        before = self.get_doc_before_save()
+        if before and before.parent_profile and before.parent_profile != self.parent_profile:
+            frappe.throw(_("The parent of a submitted subscription cannot be changed. Cancel and amend it instead."))
+        if self.parent_profile:
+            self._validate_parent()
+
     def on_update_after_submit(self):
         self._update_child()
 
     # ── validation ───────────────────────────────────────────────────────
     def _validate_parent(self):
         parents = frappe.get_all(
-            "Child Parent Link", filters={"parent": self.child, "parenttype": "Child"}, pluck="parent_customer"
+            "Child Parent Link", filters={"parent": self.child, "parenttype": "Child"}, pluck="parent_profile"
         )
-        if not self.parent_customer and parents:
-            self.parent_customer = parents[0]
-        if self.parent_customer not in parents:
-            frappe.throw(_("{0} is not linked as a parent of child {1}.").format(self.parent_customer, self.child))
+        if not self.parent_profile and parents:
+            self.parent_profile = parents[0]
+        if self.parent_profile not in parents:
+            frappe.throw(_("{0} is not linked as a parent of child {1}.").format(self.parent_profile, self.child))
 
     def _validate_plan(self):
         if not cint(self.plan.is_active) and self.docstatus == 0:
@@ -86,7 +93,7 @@ class ChildSubscription(Document):
             return
         siblings = frappe.db.count(
             "Child Subscription",
-            {"parent_customer": self.parent_customer, "child": ("!=", self.child), "docstatus": 1, "status": ("in", OPEN_STATUSES)},
+            {"parent_profile": self.parent_profile, "child": ("!=", self.child), "docstatus": 1, "status": ("in", OPEN_STATUSES)},
         )
         if not siblings:
             return

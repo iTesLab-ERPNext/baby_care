@@ -1,15 +1,70 @@
 {
- "actions":[],"creation":"2024-01-01 00:00:00.000000","doctype":"DocType",
- "engine":"InnoDB","istable":1,
- "field_order":["parent_customer","relationship","is_primary","can_pickup","notes"],
- "fields":[
-  {"fieldname":"parent_customer","fieldtype":"Link","label":"Parent (Customer)","options":"Customer","reqd":1,"in_list_view":1},
-  {"fieldname":"relationship","fieldtype":"Select","label":"Relationship","options":"Father\nMother\nGuardian\nOther","reqd":1,"in_list_view":1},
-  {"fieldname":"is_primary","fieldtype":"Check","label":"Primary Contact","default":"0","in_list_view":1},
-  {"fieldname":"can_pickup","fieldtype":"Check","label":"Authorised for Pickup","default":"1"},
-  {"fieldname":"notes","fieldtype":"Small Text","label":"Notes"}
+ "actions": [],
+ "creation": "2024-01-01 00:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "istable": 1,
+ "field_order": [
+  "parent_profile",
+  "parent_name",
+  "relationship",
+  "is_primary",
+  "can_pickup",
+  "notes"
  ],
- "modified":"2024-01-01 00:00:00.000000","modified_by":"Administrator",
- "module":"Baby Care Management","name":"Child Parent Link","owner":"Administrator",
- "permissions":[],"sort_field":"modified","sort_order":"DESC","track_changes":0
+ "fields": [
+  {
+   "fieldname": "parent_profile",
+   "fieldtype": "Link",
+   "label": "Parent",
+   "options": "Parent Profile",
+   "reqd": 1,
+   "in_list_view": 1,
+   "columns": 3
+  },
+  {
+   "fieldname": "parent_name",
+   "fieldtype": "Data",
+   "label": "Name",
+   "fetch_from": "parent_profile.full_name",
+   "read_only": 1,
+   "in_list_view": 1,
+   "columns": 2
+  },
+  {
+   "fieldname": "relationship",
+   "fieldtype": "Select",
+   "label": "Relationship",
+   "options": "Father\nMother\nGuardian\nOther",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "is_primary",
+   "fieldtype": "Check",
+   "label": "Primary Contact",
+   "default": "0",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "can_pickup",
+   "fieldtype": "Check",
+   "label": "Authorised for Pickup",
+   "default": "1"
+  },
+  {
+   "fieldname": "notes",
+   "fieldtype": "Small Text",
+   "label": "Notes"
+  }
+ ],
+ "modified": "2026-11-26 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Baby Care Management",
+ "name": "Child Parent Link",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "track_changes": 0
 }

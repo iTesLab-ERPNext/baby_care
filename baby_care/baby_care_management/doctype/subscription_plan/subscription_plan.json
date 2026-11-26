@@ -14,7 +14,7 @@
   "pricing_section",
   "base_price",
   "currency",
-  "tax_template",
+  "tax_rate",
   "col_break_2",
   "renewal_type",
   "trial_days",
@@ -78,10 +78,10 @@
    "options": "Currency"
   },
   {
-   "fieldname": "tax_template",
-   "fieldtype": "Link",
-   "label": "Tax Template",
-   "options": "Sales Taxes and Charges Template"
+   "fieldname": "tax_rate",
+   "fieldtype": "Percent",
+   "label": "Tax (%)",
+   "description": "Leave empty to use the default tax of Nursery Settings."
   },
   {
    "fieldname": "col_break_2",
@@ -144,7 +144,7 @@
    "label": "Notes"
   }
  ],
- "modified": "2026-10-16 19:30:00.000000",
+ "modified": "2026-11-26 00:00:00.000000",
  "modified_by": "Administrator",
  "module": "Baby Care Management",
  "name": "Subscription Plan",

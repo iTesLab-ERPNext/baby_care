@@ -6,7 +6,7 @@ from frappe.utils import add_days, getdate, today
 def execute(filters=None):
     filters = frappe._dict(filters or {})
     f = {"docstatus": ("<", 2)}
-    for key in ("status", "subscription_plan", "parent_customer", "child"):
+    for key in ("status", "subscription_plan", "parent_profile", "child"):
         if filters.get(key):
             f[key] = filters[key]
     if filters.get("expiring_within_days"):
@@ -14,7 +14,7 @@ def execute(filters=None):
     rows = frappe.get_list(
         "Child Subscription",
         filters=f,
-        fields=["name", "child", "parent_customer", "subscription_plan", "status", "start_date", "end_date",
+        fields=["name", "child", "parent_profile", "subscription_plan", "status", "start_date", "end_date",
                 "next_billing_date", "last_invoice_date", "discount_percent", "final_amount", "currency"],
         order_by="end_date asc",
         limit_page_length=0,
@@ -25,7 +25,7 @@ def execute(filters=None):
     columns = [
         {"label": _("Subscription"), "fieldname": "name", "fieldtype": "Link", "options": "Child Subscription", "width": 170},
         {"label": _("Child"), "fieldname": "child", "fieldtype": "Link", "options": "Child", "width": 120},
-        {"label": _("Parent"), "fieldname": "parent_customer", "fieldtype": "Link", "options": "Customer", "width": 160},
+        {"label": _("Parent"), "fieldname": "parent_profile", "fieldtype": "Link", "options": "Parent Profile", "width": 160},
         {"label": _("Plan"), "fieldname": "subscription_plan", "fieldtype": "Link", "options": "Subscription Plan", "width": 140},
         {"label": _("Status"), "fieldname": "status", "fieldtype": "Data", "width": 90},
         {"label": _("Start"), "fieldname": "start_date", "fieldtype": "Date", "width": 95},

@@ -1,0 +1,305 @@
+{
+ "actions": [],
+ "creation": "2026-11-26 00:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "first_name",
+  "last_name",
+  "full_name",
+  "relationship",
+  "col_main",
+  "email",
+  "mobile_no",
+  "phone",
+  "is_active",
+  "image",
+  "details_section",
+  "address",
+  "city",
+  "col_details",
+  "occupation",
+  "employer",
+  "work_phone",
+  "preferred_language",
+  "notes_section",
+  "notes",
+  "app_tab",
+  "app_access",
+  "app_login",
+  "app_password",
+  "send_credentials",
+  "col_app",
+  "user"
+ ],
+ "fields": [
+  {
+   "fieldname": "first_name",
+   "fieldtype": "Data",
+   "label": "First Name",
+   "reqd": 1,
+   "in_standard_filter": 0
+  },
+  {
+   "fieldname": "last_name",
+   "fieldtype": "Data",
+   "label": "Last Name"
+  },
+  {
+   "fieldname": "full_name",
+   "fieldtype": "Data",
+   "label": "Full Name",
+   "read_only": 1,
+   "in_list_view": 1,
+   "bold": 1,
+   "search_index": 1
+  },
+  {
+   "fieldname": "relationship",
+   "fieldtype": "Select",
+   "label": "Relationship",
+   "options": "Mother\nFather\nGuardian\nGrandparent\nOther",
+   "default": "Guardian",
+   "in_list_view": 1,
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "col_main",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "email",
+   "fieldtype": "Data",
+   "label": "E-mail",
+   "options": "Email",
+   "in_list_view": 1,
+   "unique": 0,
+   "search_index": 1
+  },
+  {
+   "fieldname": "mobile_no",
+   "fieldtype": "Data",
+   "label": "Mobile",
+   "options": "Phone",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "phone",
+   "fieldtype": "Data",
+   "label": "Other Phone",
+   "options": "Phone"
+  },
+  {
+   "fieldname": "is_active",
+   "fieldtype": "Check",
+   "label": "Active",
+   "default": "1",
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "image",
+   "fieldtype": "Attach Image",
+   "label": "Photo",
+   "hidden": 1
+  },
+  {
+   "fieldname": "details_section",
+   "fieldtype": "Section Break",
+   "label": "Details",
+   "collapsible": 1
+  },
+  {
+   "fieldname": "address",
+   "fieldtype": "Small Text",
+   "label": "Address"
+  },
+  {
+   "fieldname": "city",
+   "fieldtype": "Data",
+   "label": "City"
+  },
+  {
+   "fieldname": "col_details",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "occupation",
+   "fieldtype": "Data",
+   "label": "Occupation"
+  },
+  {
+   "fieldname": "employer",
+   "fieldtype": "Data",
+   "label": "Employer"
+  },
+  {
+   "fieldname": "work_phone",
+   "fieldtype": "Data",
+   "label": "Work Phone",
+   "options": "Phone"
+  },
+  {
+   "fieldname": "preferred_language",
+   "fieldtype": "Link",
+   "label": "Preferred Language",
+   "options": "Language"
+  },
+  {
+   "fieldname": "notes_section",
+   "fieldtype": "Section Break",
+   "label": "Notes",
+   "collapsible": 1
+  },
+  {
+   "fieldname": "notes",
+   "fieldtype": "Text Editor",
+   "label": "Notes"
+  },
+  {
+   "fieldname": "app_tab",
+   "fieldtype": "Tab Break",
+   "label": "Parent App"
+  },
+  {
+   "fieldname": "app_access",
+   "fieldtype": "Check",
+   "label": "Enable Parent App Access",
+   "description": "The parent signs in to the mobile app with this login."
+  },
+  {
+   "fieldname": "app_login",
+   "fieldtype": "Data",
+   "label": "App Login (e-mail)",
+   "options": "Email",
+   "depends_on": "eval:doc.app_access",
+   "mandatory_depends_on": "eval:doc.app_access"
+  },
+  {
+   "fieldname": "app_password",
+   "fieldtype": "Password",
+   "label": "Set / Change Password",
+   "depends_on": "eval:doc.app_access",
+   "description": "Leave empty to keep the current password (or to generate one for a new login). Never stored here."
+  },
+  {
+   "fieldname": "send_credentials",
+   "fieldtype": "Check",
+   "label": "E-mail the login details to the parent",
+   "depends_on": "eval:doc.app_access"
+  },
+  {
+   "fieldname": "col_app",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "user",
+   "fieldtype": "Link",
+   "label": "Linked App User",
+   "options": "User",
+   "read_only": 1,
+   "search_index": 1
+  }
+ ],
+ "modified": "2026-11-26 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Baby Care Management",
+ "name": "Parent Profile",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "role": "System Manager",
+   "permlevel": 0,
+   "read": 1,
+   "report": 1,
+   "print": 1,
+   "export": 1,
+   "email": 1,
+   "share": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "import": 1
+  },
+  {
+   "role": "Nursery Administrator",
+   "permlevel": 0,
+   "read": 1,
+   "report": 1,
+   "print": 1,
+   "export": 1,
+   "email": 1,
+   "share": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "import": 1
+  },
+  {
+   "role": "Nursery Accountant",
+   "permlevel": 0,
+   "read": 1,
+   "report": 1,
+   "print": 1,
+   "export": 1,
+   "email": 1,
+   "share": 0,
+   "write": 1,
+   "create": 1,
+   "delete": 0,
+   "import": 0
+  },
+  {
+   "role": "Nursery Receptionist",
+   "permlevel": 0,
+   "read": 1,
+   "report": 1,
+   "print": 1,
+   "export": 1,
+   "email": 1,
+   "share": 0,
+   "write": 1,
+   "create": 1,
+   "delete": 0,
+   "import": 0
+  },
+  {
+   "role": "Nursery Teacher",
+   "permlevel": 0,
+   "read": 1,
+   "report": 1,
+   "print": 1,
+   "export": 0,
+   "email": 1,
+   "share": 0,
+   "write": 0,
+   "create": 0,
+   "delete": 0,
+   "import": 0
+  },
+  {
+   "role": "Nursery Medical Staff",
+   "permlevel": 0,
+   "read": 1,
+   "report": 1,
+   "print": 1,
+   "export": 0,
+   "email": 1,
+   "share": 0,
+   "write": 0,
+   "create": 0,
+   "delete": 0,
+   "import": 0
+  }
+ ],
+ "sort_field": "full_name",
+ "sort_order": "ASC",
+ "states": [],
+ "autoname": "format:PAR-{#####}",
+ "title_field": "full_name",
+ "show_title_field_in_link": 1,
+ "search_fields": "full_name,email,mobile_no",
+ "image_field": "image",
+ "track_changes": 1,
+ "allow_import": 1,
+ "quick_entry": 1
+}
