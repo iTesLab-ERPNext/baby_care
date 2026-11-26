@@ -4,8 +4,8 @@ Nursery, daycare, kindergarten and baby-care centre management for **ERPNext v15
 Parents are ERPNext **Customers**, billing uses ERPNext **Sales Invoice** and **Payment Entry**,
 and every rule that varies between facilities is configuration, not code.
 
-Version 1.5.1 is tested end-to-end on Frappe v15 + ERPNext v15: fresh install, upgrade from
-1.0, uninstall, 34 automated tests, a 44-check role-permission audit and a browser test that opens every form for every role.
+Version 1.6.0 is tested end-to-end on Frappe v15 + ERPNext v15: fresh install, upgrade from
+1.0, uninstall, 42 automated tests, a 44-check role-permission audit and a browser test that opens every form for every role.
 
 ---
 
@@ -111,6 +111,12 @@ A read-only REST API for parents.
 
 | Endpoint | Method | What it returns |
 |---|---|---|
+| `app_login` | POST | **mobile app:** token, parent profiles, children (see *Parent mobile app*) |
+| `app_logout` | POST | mobile app: forget this phone, or sign out everywhere (`all_devices=1`) |
+| `change_password` | POST | mobile app: new password, returns a new token |
+| `register_device` | POST | mobile app: store the Expo push token of the phone |
+| `notifications` | GET | activity feed: arrivals, departures, absences, incidents, invoices, payments, reminders |
+| `app_info` | GET | public: nursery name, logo, currency (shown on the login screen) |
 | `login` | POST | session (`sid`), CSRF token, parent profiles, children |
 | `logout` | POST | ends the session |
 | `me` | GET | parent profile and children |
@@ -128,19 +134,56 @@ A read-only REST API for parents.
 
 All URLs are `/api/method/baby_care.api.v1.<endpoint>`; results are wrapped in `message`.
 
-**Giving a parent access:** open the parent (Customer) → **Baby Care → Create Parent Login**. This
-creates a website user (no desk access) with the **Nursery Parent** role, adds it to the Customer's
-*Portal Users*, and can send the welcome e-mail so the parent sets a password.
+**Giving a parent access:** open the parent (Customer) → **Parent App** tab (or the **Enable
+Parent App** button). See *Parent mobile app* below.
 
 **Security:**
 * a parent only ever sees the children and accounts of the Customers they are linked to; another
   family's child or invoice answers `404`, so records cannot be probed;
 * everything except `login` / `logout` is GET-only; POSTs with a session need the CSRF token;
-* `login` is limited to 10 attempts per 5 minutes per IP;
+* `login` and `app_login` are limited to 10 attempts per 5 minutes per IP;
 * staff accounts that are not linked to a parent cannot log in through the API;
 * server-to-server clients can use Frappe API keys: `Authorization: token <api_key>:<api_secret>`;
 * use HTTPS in production. For a web app on another domain, allow it with `allow_cors` in
-  `site_config.json`; native mobile apps need nothing extra.
+  `site_config.json` (`bench --site <site> set-config allow_cors "https://app.example.com"`);
+  native mobile apps need nothing extra.
+
+## Parent mobile app
+
+A React Native / **Expo SDK 58** app for parents ships in the separate `babycare-parent` project
+(see its README for building it). It uses the Parent API above.
+
+**Logins are managed on the parent's Customer**, new **Parent App** tab:
+
+| Field | |
+|---|---|
+| Enable Parent App Access | switches the login on / off. Off disables the user and signs out every phone. |
+| App Login (e-mail) | the username. Defaults to the Customer's e-mail. Changing it renames the user (password kept). |
+| Set / Change Password | type a password and save. It is applied to the user and **never stored on the Customer**. Minimum 8 characters + the site's password policy. |
+| E-mail the login details to the parent | sends the login (and a generated password, if one was made) on save. |
+| Linked App User | read-only: the User created for the parent. |
+
+* **Automatic creation:** when a child is saved, every parent (Customer) of that child that has an
+  e-mail and no app login gets one: a *Website User* (no desk) with the **Nursery Parent** role,
+  linked in the Customer's *Portal Users*. A generated password is shown **once** to the staff
+  member. Switch this off in **Nursery Settings → Parent App**. A Customer that is not a parent of a
+  child is never touched, and an access you switched off is not re-enabled.
+* **Generate New App Password** button on the Customer: new random password, shown once; the parent
+  is signed out on every phone.
+* **Several logins for one family** (e.g. both parents on one Customer): the existing
+  `baby_care.baby_care_management.api.parents.create_parent_user` adds another Portal User without
+  touching the main login. Usually each parent is their own Customer, linked on the child.
+
+**How the app signs in:** `app_login` checks the password with Frappe's own login checks (lockout,
+disabled users) and returns `api_key:api_secret` for `Authorization: token …`; no cookie or CSRF.
+Changing the password, *sign out on all devices*, a password set by staff and switching access
+off all rotate the secret, so old tokens stop working at once.
+
+**Push notifications** (Expo): the app registers its push token (`register_device`, DocType
+*Parent App Device*). Parents are notified when their child arrives or is picked up, is marked
+absent, on a new health incident, a new invoice and a payment received. Sends run in the
+background queue after commit; tokens Expo reports as gone are disabled. Switch off in
+**Nursery Settings → Parent App**.
 
 ---
 
@@ -228,9 +271,12 @@ bench --site <site> set-config allow_tests true
 bench --site <site> run-tests --module baby_care.tests.test_baby_care
 ```
 
-34 integration tests cover workspace integrity and desk rendering, number cards, invoice amounts and
+42 integration tests cover workspace integrity and desk rendering, number cards, invoice amounts and
 family discount, duplicate-period protection, payment status sync, overlap and parent checks,
-suspend/resume/renew, the business rules above, scheduler de-duplication and expiry, role access, and schema guards (valid table fields, no currency on count widgets).
+suspend/resume/renew, the business rules above, scheduler de-duplication and expiry, role access,
+schema guards (valid table fields, no currency on count widgets), the Parent API family isolation,
+and the Parent App credentials (password from the form, weak/staff logins refused, login rename,
+token rotation, device registration, disabling, ordinary customers untouched).
 
 ## Languages
 

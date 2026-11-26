@@ -399,3 +399,136 @@ class TestClearAfterPayment(FrappeTestCase):
         self.assertFalse(frappe.db.exists("Sales Invoice", si))
         self.assertFalse(frappe.db.exists("Payment Entry", pe.name))
         self.assertEqual(frappe.db.count("Customer", {"customer_name": ("like", "%[TEST]")}), 0)
+
+
+class TestParentApp(BabyCareTestBase):
+    """Parent App credentials (Customer form) and the mobile endpoints."""
+
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        frappe.set_user("Administrator")
+        cls.login = "ut-app-karim@bc.test"
+        cls.karim = frappe.get_doc({"doctype": "Customer", "customer_name": "UT App Parent", "customer_type": "Individual",
+                                    "customer_group": frappe.db.get_value("Customer Group", {"is_group": 0}),
+                                    "territory": "All Territories"}).insert(ignore_permissions=True).name
+
+    @classmethod
+    def tearDownClass(cls):
+        frappe.set_user("Administrator")
+        cls._reset(cls.karim)
+        frappe.delete_doc("Customer", cls.karim, force=True, ignore_permissions=True)
+        frappe.db.commit()
+        super().tearDownClass()
+
+    @staticmethod
+    def _reset(customer):
+        main = frappe.db.get_value("Customer", customer, "bc_parent_user")
+        for u in {"ut-app-karim@bc.test", "ut-app-karim2@bc.test", "ut-app-extra@bc.test"}:
+            frappe.db.delete("Portal User", {"parent": customer, "user": u})
+            if frappe.db.exists("User", u) and u != main:
+                frappe.delete_doc("User", u, force=True, ignore_permissions=True)
+        if main in {"ut-app-karim@bc.test", "ut-app-karim2@bc.test"}:
+            frappe.db.delete("Portal User", {"parent": customer, "user": main})
+            frappe.delete_doc("User", main, force=True, ignore_permissions=True)
+            frappe.db.set_value("Customer", customer, {"bc_parent_app_access": 0, "bc_parent_login": None, "bc_parent_user": None})
+
+    def _enable(self, password="Cedar#Lake58", login=None):
+        frappe.set_user("Administrator")
+        c = frappe.get_doc("Customer", self.karim)
+        c.bc_parent_app_access = 1
+        c.bc_parent_login = login or self.login
+        c.bc_parent_password = password
+        c.save()
+        return frappe.get_doc("Customer", self.karim)
+
+    def test_password_set_from_customer_form(self):
+        from frappe.utils.password import check_password
+
+        c = self._enable()
+        self.assertEqual(c.bc_parent_user, self.login)
+        self.assertEqual(check_password(self.login, "Cedar#Lake58"), self.login)
+        self.assertIn("Nursery Parent", frappe.get_roles(self.login))
+        self.assertEqual(frappe.db.get_value("User", self.login, "user_type"), "Website User")
+        self.assertFalse(c.get("bc_parent_password"))
+        self.assertFalse(frappe.db.exists("__Auth", {"doctype": "Customer", "name": self.karim, "fieldname": "bc_parent_password"}))
+
+    def test_weak_password_refused(self):
+        frappe.set_user("Administrator")
+        c = frappe.get_doc("Customer", self.karim)
+        c.bc_parent_app_access, c.bc_parent_login, c.bc_parent_password = 1, self.login, "short"
+        with self.assertRaises(frappe.ValidationError):
+            c.save()
+
+    def test_staff_account_refused(self):
+        frappe.set_user("Administrator")
+        staff = _user("ut-app-staff@bc.test", ["Nursery Teacher"])
+        frappe.db.set_value("User", staff, "user_type", "System User")
+        c = frappe.get_doc("Customer", self.karim)
+        c.bc_parent_app_access, c.bc_parent_login = 1, staff
+        with self.assertRaises(frappe.ValidationError):
+            c.save()
+
+    def test_change_password_rotates_token(self):
+        from baby_care.api import v1
+
+        self._enable()
+        old = v1._api_token(self.login)
+        self.assertEqual(old, v1._api_token(self.login))  # stable between logins
+        frappe.set_user(self.login)
+        with self.assertRaises(frappe.ValidationError):
+            v1.change_password("wrong-one", "Maple#Road31")
+        new = v1.change_password("Cedar#Lake58", "Maple#Road31")["token"]
+        self.assertNotEqual(old.split(":")[1], new.split(":")[1])
+        self.assertEqual(old.split(":")[0], new.split(":")[0])
+
+    def test_register_device_and_feed(self):
+        from baby_care.api import v1
+
+        self._enable()
+        frappe.set_user(self.login)
+        with self.assertRaises(frappe.ValidationError):
+            v1.register_device("not-a-token")
+        v1.register_device("ExponentPushToken[ut-123]", "android", "Pixel")
+        self.assertTrue(frappe.db.exists("Parent App Device", {"user": self.login, "push_token": "ExponentPushToken[ut-123]"}))
+        feed = v1.notifications()
+        self.assertFalse([f for f in feed if f.get("child")])  # this family has no children
+        v1.app_logout(push_token="ExponentPushToken[ut-123]")
+        self.assertFalse(frappe.db.exists("Parent App Device", {"user": self.login}))
+
+    def test_login_change_renames_user(self):
+        c = self._enable()
+        c = self._enable(password=None, login="ut-app-karim2@bc.test")
+        self.assertEqual(c.bc_parent_user, "ut-app-karim2@bc.test")
+        self.assertFalse(frappe.db.exists("User", self.login))
+        links = frappe.get_all("Portal User", {"parent": self.karim}, pluck="user")
+        self.assertIn("ut-app-karim2@bc.test", links)
+        self.assertNotIn(self.login, links)
+        self._enable(password=None, login=self.login)
+
+    def test_disable_signs_out(self):
+        from baby_care.api import v1
+        from baby_care.baby_care_management.api.parents import create_parent_user
+
+        self._enable()
+        extra = create_parent_user(self.karim, "ut-app-extra@bc.test", send_welcome_email=0)["user"]
+        self.assertEqual(frappe.db.get_value("Customer", self.karim, "bc_parent_user"), self.login)  # main login kept
+        token = v1._api_token(self.login)
+        c = frappe.get_doc("Customer", self.karim)
+        c.bc_parent_app_access = 0
+        c.save()
+        self.assertFalse(frappe.db.get_value("User", self.login, "enabled"))
+        self.assertFalse(frappe.db.get_value("User", extra, "enabled"))
+        self.assertNotEqual(token, v1._api_token(self.login))
+        self._enable()
+        self.assertTrue(frappe.db.get_value("User", self.login, "enabled"))
+
+    def test_plain_customer_untouched(self):
+        frappe.set_user("Administrator")
+        c = frappe.get_doc({"doctype": "Customer", "customer_name": "UT Plain Customer", "customer_type": "Company",
+                            "customer_group": frappe.db.get_value("Customer Group", {"is_group": 0}),
+                            "territory": "All Territories", "email_id": "ut-plain@bc.test"}).insert(ignore_permissions=True)
+        c.save()
+        self.assertFalse(frappe.db.exists("User", "ut-plain@bc.test"))
+        self.assertFalse(frappe.get_all("Portal User", {"parent": c.name}))
+        frappe.delete_doc("Customer", c.name, force=True)

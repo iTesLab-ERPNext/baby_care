@@ -15,9 +15,21 @@ import json
 import frappe
 from frappe import _
 from frappe.rate_limiter import rate_limit
-from frappe.utils import add_days, cint, flt, getdate, today
+from frappe.utils import add_days, cint, flt, fmt_money, formatdate, getdate, today
 
 from baby_care.api import spec
+
+
+def _hhmm(t):
+    """'8:00:00' / timedelta -> '08:00'."""
+    parts = str(t or "").split(":")
+    return f"{int(parts[0]):02d}:{parts[1][:2]}" if len(parts) >= 2 and parts[0].strip().isdigit() else ""
+
+
+def _money(amount, currency=None):
+    """'TND 999.000' — currency code, not the symbol: some symbols are right-to-left
+    (e.g. د.ت) and scramble a left-to-right sentence on the phone."""
+    return f"{currency or ''} {fmt_money(flt(amount))}".strip()
 
 MAX_LIMIT = 100
 DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
@@ -487,6 +499,188 @@ def balance():
         p["outstanding"] += flt(r.outstanding_amount)
     out["by_child"] = list(per.values())
     return out
+
+
+# ── mobile app ───────────────────────────────────────────────────────────────
+def _login_manager():
+    lm = getattr(frappe.local, "login_manager", None)
+    if lm is None:
+        from frappe.auth import LoginManager
+
+        lm = frappe.local.login_manager = LoginManager()
+    return lm
+
+
+def _api_token(user, rotate=False):
+    """`api_key:api_secret` for token auth (`Authorization: token …`)."""
+    from frappe.utils.password import get_decrypted_password, set_encrypted_password
+
+    key = frappe.db.get_value("User", user, "api_key")
+    secret = None if rotate or not key else get_decrypted_password("User", user, "api_secret", raise_exception=False)
+    if not key:
+        key = frappe.generate_hash(length=15)
+        frappe.db.set_value("User", user, "api_key", key, update_modified=False)
+    if not secret:
+        secret = frappe.generate_hash(length=15)
+        set_encrypted_password("User", user, secret, "api_secret")
+    return f"{key}:{secret}"
+
+
+@frappe.whitelist(allow_guest=True, methods=["POST"])
+@rate_limit(limit=10, seconds=5 * 60)
+def app_login(usr=None, pwd=None, device_name=None):
+    """Mobile login: returns a long-lived token instead of a browser session."""
+    if not usr or not pwd:
+        frappe.throw(_("Both 'usr' and 'pwd' are required."), frappe.ValidationError)
+    lm = _login_manager()
+    lm.authenticate(user=(usr or "").strip(), pwd=pwd)
+    user = lm.user
+    customers = parent_customers(user)
+    if not customers or "Nursery Parent" not in frappe.get_roles(user):
+        frappe.throw(_("This account is not linked to a parent profile."), frappe.PermissionError)
+    token = _api_token(user)
+    frappe.db.set_value("User", user, "last_login", frappe.utils.now(), update_modified=False)
+    frappe.db.commit()
+    return {
+        "token": token,
+        "user": user,
+        "full_name": frappe.utils.get_fullname(user),
+        "parents": _parents_info(customers),
+        "children": _children_brief(customers),
+        "app": app_info(),
+    }
+
+
+@frappe.whitelist(methods=["POST"])
+def app_logout(all_devices=0, push_token=None):
+    """Forget this phone's push token; with all_devices=1 also invalidate every app token."""
+    _customers()
+    if push_token:
+        frappe.db.delete("Parent App Device", {"user": frappe.session.user, "push_token": push_token})
+    if cint(all_devices):
+        _api_token(frappe.session.user, rotate=True)
+        frappe.db.delete("Parent App Device", {"user": frappe.session.user})
+    return {"ok": True}
+
+
+@frappe.whitelist(methods=["POST"])
+def change_password(old_password=None, new_password=None):
+    """Change the parent's password. Returns a new token: other phones are signed out."""
+    _customers()
+    if not old_password or not new_password:
+        frappe.throw(_("Both 'old_password' and 'new_password' are required."), frappe.ValidationError)
+    from frappe.utils.password import check_password, update_password
+
+    user = frappe.session.user
+    try:
+        check_password(user, old_password)
+    except frappe.AuthenticationError:
+        frappe.throw(_("The current password is not correct."), frappe.ValidationError)
+    if new_password == old_password:
+        frappe.throw(_("Choose a password different from the current one."), frappe.ValidationError)
+    from baby_care.baby_care_management.utils.parent_access import _check_strength
+
+    _check_strength(new_password, user)
+    update_password(user, new_password)
+    return {"ok": True, "token": _api_token(user, rotate=True)}
+
+
+@frappe.whitelist(allow_guest=True, methods=["GET"])
+def app_info():
+    """Public facts the app shows before login (name, logo, currency)."""
+    s = frappe.get_cached_doc("Nursery Settings")
+    return {
+        "name": s.get("parent_app_name") or s.get("facility_name") or _("Baby Care"),
+        "facility_type": s.get("facility_type"),
+        "logo": "/assets/baby_care/images/baby_care_logo.svg",
+        "currency": s.get("default_currency"),
+        "api_version": spec.VERSION,
+        "push_enabled": bool(cint(s.get("enable_push_notifications"))),
+    }
+
+
+@frappe.whitelist(methods=["POST"])
+def register_device(push_token=None, platform=None, device_name=None, app_version=None):
+    """Store this phone's Expo push token so the nursery can notify the parent."""
+    _customers()
+    token = (push_token or "").strip()
+    if not token.startswith(("ExponentPushToken[", "ExpoPushToken[")):
+        frappe.throw(_("Invalid Expo push token."), frappe.ValidationError)
+    values = {"user": frappe.session.user, "platform": (platform or "")[:20] if platform in ("ios", "android", "web") else "",
+              "device_name": (device_name or "")[:140], "app_version": (app_version or "")[:40], "enabled": 1,
+              "last_seen": frappe.utils.now(), "last_error": None}
+    name = frappe.db.get_value("Parent App Device", {"push_token": token}, "name")
+    if name:
+        frappe.db.set_value("Parent App Device", name, values)
+    else:
+        frappe.get_doc(dict(values, doctype="Parent App Device", push_token=token)).insert(ignore_permissions=True)
+    return {"ok": True}
+
+
+@frappe.whitelist(methods=["GET"])
+def notifications(days=30, limit=None, start=None):
+    """Activity feed for the parent: arrivals and departures, health notes,
+    invoices, payments, document and subscription reminders — newest first."""
+    customers = _customers()
+    limit, start = _paging(limit or 50, start)
+    days = max(1, min(cint(days) or 30, 180))
+    since = add_days(today(), -days)
+    kids = _my_children(customers)
+    names = dict(frappe.get_all("Child", filters={"name": ("in", kids or [""])}, fields=["name", "first_name"], as_list=True))
+    feed = []
+    types = _status_types()
+
+    def add(kind, key, when, title, body, child=None, ref=None):
+        feed.append({"id": f"{kind}:{key}", "type": kind, "datetime": str(when), "title": title, "body": body,
+                     "child": child, "child_name": names.get(child), "ref": ref})
+
+    if kids:
+        for a in frappe.get_all("Child Attendance", filters={"child": ("in", kids), "attendance_date": (">=", since)},
+                                fields=["name", "child", "attendance_date", "status", "check_in_time", "check_out_time", "pickup_person", "absence_reason"]):
+            n = names.get(a.child)
+            if a.check_in_time:
+                add("check_in", a.name, f"{a.attendance_date} {a.check_in_time}", _("{0} has arrived").format(n),
+                    _("Checked in at {0}").format(_hhmm(a.check_in_time)), a.child, a.name)
+            if a.check_out_time:
+                by = _(" by {0}").format(a.pickup_person) if a.pickup_person else ""
+                add("check_out", a.name, f"{a.attendance_date} {a.check_out_time}", _("{0} has left").format(n),
+                    _("Picked up at {0}{1}").format(_hhmm(a.check_out_time), by), a.child, a.name)
+            if not a.check_in_time and types.get(a.status) in ("Absent", "Leave"):
+                add("absence", a.name, f"{a.attendance_date} 08:00:00", _("{0} marked {1}").format(n, _(a.status)),
+                    a.absence_reason or "", a.child, a.name)
+        for i in frappe.get_all("Health Incident", filters={"child": ("in", kids), "incident_datetime": (">=", since)},
+                                fields=["name", "child", "incident_datetime", "severity", "description", "action_taken"]):
+            add("incident", i.name, i.incident_datetime, _("Health note for {0}").format(names.get(i.child)),
+                f"{_(i.severity or '')}: {i.description or ''}" + (f" — {i.action_taken}" if i.action_taken else ""), i.child, i.name)
+        for d in frappe.get_all("Child Document", filters={"child": ("in", kids), "status": ("in", ["Expired", "Missing"])},
+                                fields=["name", "child", "document_type", "status", "modified"]):
+            add("document", d.name, d.modified, _("Document needed: {0}").format(_(d.document_type)),
+                _("{0} — {1}").format(names.get(d.child), _(d.status)), d.child, d.name)
+    for si in frappe.get_all("Sales Invoice", filters={"customer": ("in", customers), "docstatus": 1, "posting_date": (">=", since)},
+                             fields=["name", "posting_date", "creation", "grand_total", "outstanding_amount", "due_date", "currency", "baby_care_child"]):
+        add("invoice", si.name, si.creation, _("New invoice {0}").format(si.name),
+            _("{0} — due {1}").format(_money(si.grand_total, si.currency), formatdate(si.due_date)), si.baby_care_child, si.name)
+    for pe in frappe.get_all("Payment Entry", filters={"party_type": "Customer", "party": ("in", customers), "docstatus": 1,
+                                                       "payment_type": "Receive", "posting_date": (">=", since)},
+                             fields=["name", "creation", "paid_amount", "paid_from_account_currency"]):
+        add("payment", pe.name, pe.creation, _("Payment received"),
+            _("{0} — thank you").format(_money(pe.paid_amount, pe.paid_from_account_currency)), None, pe.name)
+    for si in frappe.get_all("Sales Invoice", filters={"customer": ("in", customers), "docstatus": 1, "outstanding_amount": (">", 0),
+                                                       "due_date": ("<", today())},
+                             fields=["name", "due_date", "outstanding_amount", "currency", "baby_care_child"]):
+        add("overdue", si.name, f"{si.due_date} 09:00:00", _("Invoice {0} is overdue").format(si.name),
+            _("{0} still to pay").format(_money(si.outstanding_amount, si.currency)), si.baby_care_child, si.name)
+    for sub in frappe.get_all("Child Subscription", filters={"parent_customer": ("in", customers), "docstatus": 1, "status": "Active",
+                                                             "end_date": ("between", [today(), add_days(today(), 30)])},
+                              fields=["name", "child", "end_date"]):
+        add("subscription", sub.name, f"{add_days(sub.end_date, -30)} 09:00:00", _("Subscription ends soon"),
+            _("{0}'s subscription ends on {1}").format(names.get(sub.child), sub.end_date), sub.child, sub.name)
+    for n in frappe.get_all("Notification Log", filters={"for_user": frappe.session.user, "creation": (">=", since)},
+                            fields=["name", "creation", "subject", "email_content"]):
+        add("message", n.name, n.creation, frappe.utils.strip_html(n.subject or ""), frappe.utils.strip_html(n.email_content or "")[:300])
+
+    feed.sort(key=lambda x: x["datetime"], reverse=True)
+    return feed[start:start + limit]
 
 
 # ── documentation ────────────────────────────────────────────────────────────

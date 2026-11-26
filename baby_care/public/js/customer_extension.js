@@ -1,6 +1,13 @@
 // Baby Care — parent profile on the ERPNext Customer form
 frappe.ui.form.on("Customer", {
+	bc_parent_app_access(frm) {
+		if (frm.doc.bc_parent_app_access && !frm.doc.bc_parent_login && frm.doc.email_id) frm.set_value("bc_parent_login", frm.doc.email_id);
+	},
 	refresh(frm) {
+		if (frm.fields_dict.bc_parent_user) {
+			frm.set_df_property("bc_parent_user", "description",
+				frm.doc.bc_parent_user ? __("The parent signs in to the mobile app with this login.") : "");
+		}
 		if (frm.is_new()) return;
 		const group = __("Baby Care");
 		if (frappe.model.can_read("Child"))
@@ -13,24 +20,31 @@ frappe.ui.form.on("Customer", {
 			frm.add_custom_button(__("Register Child"), () => frappe.new_doc("Child", { parents: [{ parent_customer: frm.doc.name, is_primary: 1 }] }), group);
 		frm.add_custom_button(__("Account Statement"), () => frappe.set_route("query-report", "Parent Account Statement", { customer: frm.doc.name }), group);
 		if (frm.has_perm("write")) {
-			frm.add_custom_button(__("Create Parent Login"), () => {
-				frappe.prompt(
-					[
-						{ fieldname: "email", fieldtype: "Data", options: "Email", label: __("Parent e-mail"), reqd: 1, default: frm.doc.email_id || "" },
-						{ fieldname: "send_welcome_email", fieldtype: "Check", label: __("Send welcome e-mail (lets the parent set a password)"), default: 1 },
-					],
-					(v) =>
+			if (!frm.doc.bc_parent_app_access) {
+				frm.add_custom_button(__("Enable Parent App"), () => {
+					frm.set_value("bc_parent_app_access", 1);
+					if (!frm.doc.bc_parent_login && frm.doc.email_id) frm.set_value("bc_parent_login", frm.doc.email_id);
+					frm.scroll_to_field("bc_parent_login");
+					frappe.show_alert({ message: __("Check the login e-mail, optionally type a password, then save."), indicator: "blue" });
+				}, group);
+			} else {
+				frm.add_custom_button(__("Generate New App Password"), () => {
+					frappe.confirm(__("Generate a new password for {0}? The parent is signed out of the app on every phone.", [frm.doc.bc_parent_user]), () =>
 						frappe
-							.call({ method: "baby_care.baby_care_management.api.parents.create_parent_user", args: { customer: frm.doc.name, ...v }, freeze: true })
+							.call({ method: "baby_care.baby_care_management.utils.parent_access.reset_parent_password", args: { customer: frm.doc.name }, freeze: true })
 							.then((r) => {
 								const m = r.message;
-								frappe.show_alert({ message: m.created ? __("Parent login {0} created", [m.user]) : __("{0} linked to this parent", [m.user]), indicator: "green" });
-								frm.reload_doc();
-							}),
-					__("Parent login for the mobile app / Parent API"),
-					__("Create")
-				);
-			}, group);
+								frappe.msgprint({
+									title: __("Parent App"),
+									indicator: "green",
+									message: __("New password for {0}:", [frappe.utils.escape_html(m.user)]) +
+										`<br><br><code style="font-size:1.2em">${frappe.utils.escape_html(m.password)}</code><br><br>` +
+										__("Give it to the parent now — it is not shown again."),
+								});
+							})
+					);
+				}, group);
+			}
 		}
 		frm.add_custom_button(__("Parent API docs"), () => window.open("/parent-api", "_blank"), group);
 

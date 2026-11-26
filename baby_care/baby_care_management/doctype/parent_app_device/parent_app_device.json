@@ -1,0 +1,118 @@
+{
+ "doctype": "DocType",
+ "name": "Parent App Device",
+ "module": "Baby Care Management",
+ "autoname": "hash",
+ "engine": "InnoDB",
+ "creation": "2026-11-26 17:00:00.000000",
+ "modified": "2026-11-26 17:00:00.000000",
+ "owner": "Administrator",
+ "modified_by": "Administrator",
+ "track_changes": 0,
+ "title_field": "device_name",
+ "sort_field": "last_seen",
+ "sort_order": "DESC",
+ "description": "Phones registered by parents for push notifications (filled by the Parent App).",
+ "fields": [
+  {
+   "fieldname": "user",
+   "fieldtype": "Link",
+   "label": "Parent User",
+   "options": "User",
+   "reqd": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "search_index": 1
+  },
+  {
+   "fieldname": "push_token",
+   "fieldtype": "Data",
+   "label": "Expo Push Token",
+   "reqd": 1,
+   "unique": 1
+  },
+  {
+   "fieldname": "platform",
+   "fieldtype": "Select",
+   "label": "Platform",
+   "options": "\nios\nandroid\nweb",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "device_name",
+   "fieldtype": "Data",
+   "label": "Device",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "app_version",
+   "fieldtype": "Data",
+   "label": "App Version"
+  },
+  {
+   "fieldname": "enabled",
+   "fieldtype": "Check",
+   "label": "Enabled",
+   "default": "1",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "last_seen",
+   "fieldtype": "Datetime",
+   "label": "Last Seen",
+   "read_only": 1
+  },
+  {
+   "fieldname": "last_error",
+   "fieldtype": "Small Text",
+   "label": "Last Push Error",
+   "read_only": 1
+  }
+ ],
+ "permissions": [
+  {
+   "role": "System Manager",
+   "permlevel": 0,
+   "read": 1,
+   "write": 1,
+   "create": 0,
+   "delete": 1,
+   "submit": 0,
+   "cancel": 0,
+   "amend": 0,
+   "report": 1,
+   "export": 1,
+   "import": 0,
+   "share": 0,
+   "print": 0,
+   "email": 0
+  },
+  {
+   "role": "Nursery Administrator",
+   "permlevel": 0,
+   "read": 1,
+   "write": 1,
+   "create": 0,
+   "delete": 1,
+   "submit": 0,
+   "cancel": 0,
+   "amend": 0,
+   "report": 1,
+   "export": 0,
+   "import": 0,
+   "share": 0,
+   "print": 0,
+   "email": 0
+  }
+ ],
+ "field_order": [
+  "user",
+  "push_token",
+  "platform",
+  "device_name",
+  "app_version",
+  "enabled",
+  "last_seen",
+  "last_error"
+ ]
+}

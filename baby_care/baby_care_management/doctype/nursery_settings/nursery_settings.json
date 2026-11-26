@@ -37,7 +37,11 @@
   "operations_section",
   "enable_transportation",
   "enforce_pickup_verification",
-  "allow_multiple_teachers"
+  "allow_multiple_teachers",
+  "parent_app_section",
+  "auto_create_parent_login",
+  "enable_push_notifications",
+  "parent_app_name"
  ],
  "fields": [
   {
@@ -234,10 +238,35 @@
    "fieldtype": "Check",
    "label": "Allow Additional Teachers per Child (via class)",
    "default": "1"
+  },
+  {
+   "fieldname": "parent_app_section",
+   "fieldtype": "Section Break",
+   "label": "Parent App"
+  },
+  {
+   "fieldname": "auto_create_parent_login",
+   "fieldtype": "Check",
+   "label": "Create Parent App Logins Automatically",
+   "default": "1",
+   "description": "When a child is saved, parents with an e-mail and no app login get one, with a generated password shown to the staff member."
+  },
+  {
+   "fieldname": "enable_push_notifications",
+   "fieldtype": "Check",
+   "label": "Send Push Notifications to Parents",
+   "default": "1",
+   "description": "Check-in / check-out, health incidents, new invoices and payments are pushed to the parent's phone."
+  },
+  {
+   "fieldname": "parent_app_name",
+   "fieldtype": "Data",
+   "label": "App Display Name",
+   "description": "Shown on the app's login screen. Defaults to the facility name."
   }
  ],
  "issingle": 1,
- "modified": "2026-10-16 19:30:00.000000",
+ "modified": "2026-11-26 17:00:00.000000",
  "modified_by": "Administrator",
  "module": "Baby Care Management",
  "name": "Nursery Settings",

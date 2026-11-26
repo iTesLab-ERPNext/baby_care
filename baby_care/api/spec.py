@@ -7,7 +7,7 @@ Used by:
 """
 
 BASE = "/api/method/baby_care.api.v1."
-VERSION = "1.0.0"
+VERSION = "1.1.0"
 
 DATE = {"type": "string", "format": "date"}
 
@@ -17,6 +17,43 @@ START = ("start", "integer", False, "Offset for pagination (default 0)", 0)
 
 # name, method, tag, summary, description, auth, params[(name, type, required, description, example)], example response
 ENDPOINTS = [
+    ("app_login", "POST", "Mobile App", "Mobile login (token)",
+     "Login for the mobile app. Returns a token to send on every call as `Authorization: token <token>` — no cookie or CSRF "
+     "token needed. The token stays valid until the parent changes their password, the nursery sets a new one, or "
+     "`app_logout` is called with `all_devices=1`. Limited to 10 attempts per 5 minutes per IP.",
+     False,
+     [("usr", "string", True, "Parent e-mail (the login set on the Customer's Parent App tab)", "parent@example.com"),
+      ("pwd", "string", True, "Password", "********"),
+      ("device_name", "string", False, "Phone name, for the nursery's records", "Pixel 9")],
+     {"token": "1a2b3c4d5e6f7a8:9b8c7d6e5f4a3b2", "user": "parent@example.com", "full_name": "Sara Ben Ali",
+      "parents": [{"customer": "Sara Ben Ali", "customer_name": "Sara Ben Ali"}],
+      "children": [{"child": "CHILD-00001", "full_name": "Adam Ben Ali"}],
+      "app": {"name": "My Nursery", "currency": "TND", "api_version": "1.1.0", "push_enabled": True}}),
+    ("app_logout", "POST", "Mobile App", "Mobile logout",
+     "Removes this phone's push registration. With `all_devices=1` every app token of the parent stops working.", True,
+     [("push_token", "string", False, "This phone's Expo push token", "ExponentPushToken[xxxx]"),
+      ("all_devices", "integer", False, "1 = sign out on every phone", 0)], {"ok": True}),
+    ("change_password", "POST", "Mobile App", "Change password",
+     "The parent changes their own password. Returns a new token; other phones are signed out.", True,
+     [("old_password", "string", True, "Current password", "********"),
+      ("new_password", "string", True, "New password (8+ characters)", "********")],
+     {"ok": True, "token": "1a2b3c4d5e6f7a8:new-secret"}),
+    ("app_info", "GET", "Mobile App", "App information",
+     "Public: the nursery name the app shows on its login screen, currency and API version.", False, [],
+     {"name": "My Nursery", "facility_type": "Nursery", "logo": "/assets/baby_care/images/baby_care_logo.svg",
+      "currency": "TND", "api_version": "1.1.0", "push_enabled": True}),
+    ("register_device", "POST", "Mobile App", "Register for push notifications",
+     "Stores the phone's Expo push token. The nursery then pushes arrivals, departures, health notes, new invoices and payments.", True,
+     [("push_token", "string", True, "Expo push token", "ExponentPushToken[xxxx]"),
+      ("platform", "string", False, "ios, android or web", "android"),
+      ("device_name", "string", False, "Phone name", "Pixel 9"),
+      ("app_version", "string", False, "App version", "1.0.0")], {"ok": True}),
+    ("notifications", "GET", "Mobile App", "Notifications feed",
+     "Recent activity for the parent's family, newest first: arrivals, departures, absences, health notes, new and overdue "
+     "invoices, payments, missing documents, subscriptions ending soon and messages from the nursery.", True,
+     [("days", "integer", False, "How far back (default 30, max 180)", 30), LIMIT, START],
+     [{"id": "check_in:ATT-0001", "type": "check_in", "datetime": "2026-11-26 08:02:00", "title": "Adam has arrived",
+       "body": "Checked in at 08:02", "child": "CHILD-00001", "child_name": "Adam", "ref": "ATT-0001"}]),
     ("login", "POST", "Authentication", "Log in a parent",
      "Checks the parent's e-mail and password, starts a session and returns the session id (`sid`) and a CSRF token. "
      "Browsers keep the `sid` cookie automatically; mobile apps send it back as a `Cookie: sid=…` header. "

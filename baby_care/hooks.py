@@ -43,13 +43,34 @@ fixtures = [
 # ── DocType events ───────────────────────────────────────────────────────────
 doc_events = {
     "Sales Invoice": {
-        "on_submit": "baby_care.baby_care_management.utils.billing.on_sales_invoice_change",
+        "on_submit": [
+            "baby_care.baby_care_management.utils.billing.on_sales_invoice_change",
+            "baby_care.baby_care_management.utils.push.on_invoice_submit",
+        ],
         "on_cancel": "baby_care.baby_care_management.utils.billing.on_sales_invoice_change",
         "on_update_after_submit": "baby_care.baby_care_management.utils.billing.on_sales_invoice_change",
     },
     "Payment Entry": {
-        "on_submit": "baby_care.baby_care_management.utils.billing.on_payment_entry_change",
+        "on_submit": [
+            "baby_care.baby_care_management.utils.billing.on_payment_entry_change",
+            "baby_care.baby_care_management.utils.push.on_payment_submit",
+        ],
         "on_cancel": "baby_care.baby_care_management.utils.billing.on_payment_entry_change",
+    },
+    # Parent App: login credentials managed on the Customer (parent) form
+    "Customer": {
+        "validate": "baby_care.baby_care_management.utils.parent_access.customer_validate",
+        "on_update": "baby_care.baby_care_management.utils.parent_access.customer_on_update",
+    },
+    "Child": {
+        "on_update": "baby_care.baby_care_management.utils.parent_access.child_on_update",
+    },
+    # Parent App: push notifications
+    "Child Attendance": {
+        "on_update": "baby_care.baby_care_management.utils.push.on_attendance_update",
+    },
+    "Health Incident": {
+        "after_insert": "baby_care.baby_care_management.utils.push.on_incident_insert",
     },
 }
 

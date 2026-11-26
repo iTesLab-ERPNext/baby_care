@@ -117,6 +117,13 @@ def ensure_custom_fields():
 
     create_custom_fields({"Sales Invoice": SALES_INVOICE_FIELDS}, ignore_validate=True, update=True)
 
+    # Parent App tab at the end of the Customer form
+    from baby_care.baby_care_management.utils import parent_access
+
+    own = {df["fieldname"] for df in parent_access.FIELDS}
+    std = [df.fieldname for df in frappe.get_meta("Customer").fields if df.fieldname not in own]
+    create_custom_fields({"Customer": parent_access.custom_fields(std[-1])}, ignore_validate=True, update=True)
+
 
 def ensure_master_data():
     from baby_care.baby_care_management.api.seed import install_master_data
@@ -148,6 +155,12 @@ def before_uninstall():
         _clear_tracked()  # demo records also live in ERPNext tables (Customer, Sales Invoice)
     except Exception:
         frappe.log_error(title="Baby Care: could not clear test data on uninstall")
+    from baby_care.baby_care_management.utils import parent_access
+
+    for df in parent_access.FIELDS:
+        name = f"Customer-{df['fieldname']}"
+        if frappe.db.exists("Custom Field", name):
+            frappe.delete_doc("Custom Field", name, ignore_permissions=True)
     for df in SALES_INVOICE_FIELDS:
         name = f"Sales Invoice-{df['fieldname']}"
         if frappe.db.exists("Custom Field", name):
