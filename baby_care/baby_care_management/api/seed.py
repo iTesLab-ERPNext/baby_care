@@ -152,7 +152,7 @@ DEMO_PARENTS = (
     # first, last, relationship, mobile, app login
     ("Sara", "Ben Ali [TEST]", "Mother", "+21620111111", "sara@babycare.demo"),
     ("Karim", "Trabelsi [TEST]", "Father", "+21620222222", "karim@babycare.demo"),
-    ("Amira", "Haddad [TEST]", "Mother", "+21620333333", "amira@babycare.demo"),
+    ("Amira", "Sami [TEST]", "Mother", "+21620333333", "amira@babycare.demo"),
     ("Mehdi", "Ben Ali [TEST]", "Father", "+21620444444", None),  # second parent of Adam & Lina, no app login
 )
 
@@ -227,8 +227,8 @@ def _build_test_data(track):
         ("Adam", "Ben Ali", add_months(today(), -30), "Male", 0, c1.name, t1.name),
         ("Lina", "Ben Ali", add_months(today(), -50), "Female", 0, c2.name, t2.name),
         ("Omar", "Trabelsi", add_months(today(), -26), "Male", 1, c1.name, t1.name),
-        ("Yasmine", "Haddad", add_months(today(), -44), "Female", 2, c2.name, t2.name),
-        ("Rayan", "Haddad", add_days(add_years(today(), -4), 5), "Male", 2, c2.name, t2.name),
+        ("Yasmine", "Sami", add_months(today(), -44), "Female", 2, c2.name, t2.name),
+        ("Rayan", "Sami", add_days(add_years(today(), -4), 5), "Male", 2, c2.name, t2.name),
     ]
     children = []
     for first, last, dob, gender, p_idx, cls, teacher in kids:
