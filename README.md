@@ -49,8 +49,19 @@ ERPNext may be installed on the same site; Baby Care simply does not use it.
 
 1. **Baby Care Management → Data Management → Install Seed Data**: services, subscription plans,
    meal plans and a transport route you can edit.
-2. Optional: **Install Test Data** loads tagged demo parents, children, teachers, attendance,
-   subscriptions and invoices. **Clear Test Data** removes exactly those records.
+2. Optional: **Install Test Data** loads tagged demo records for every part of the app: 4 parents
+   (3 with mobile app logins), 5 children, 2 teachers and classes, 2 weeks of attendance, medical
+   records, health notes, documents, meal plans, services, transport, subscriptions, invoices
+   (paid, partly paid, unpaid, overdue) and payments. The page shows the demo logins:
+
+   | Login | Password | Children |
+   |---|---|---|
+   | `sara@babycare.demo` | `BabyCare@2026` | Adam, Lina |
+   | `karim@babycare.demo` | `BabyCare@2026` | Omar |
+   | `amira@babycare.demo` | `BabyCare@2026` | Yasmine, Rayan |
+
+   **Clear Test Data** removes exactly those records and logins (do it before going live).
+   From the command line: `bench --site <site> execute baby_care.baby_care_management.api.seed.install_test_data`.
 3. **Configuration → Application Settings**: set the currency, invoice due days, default tax, family
    discount, payment instructions (printed for parents), notification windows and the operational switches.
 4. **Parents → New**: create a Parent Profile, then **Create → Register Child** from it.
@@ -86,18 +97,6 @@ workspace, available on every desk page:
 * a filter box narrows the links as you type (Enter opens the first match);
 * the current page is highlighted; Ctrl/⌘/middle-click opens a link in a new tab; Esc or a click
   outside closes the panel; on phones it opens full-width.
-
-### Main sidebar group
-
-A **BABY CARE** group sits at the top of the main desk sidebar, above PUBLIC, styled like
-Frappe's own groups. Its 9 items (Dashboard, Parents & Children, Subscriptions & Billing, Health &
-Documents, Services & Activities, Staff & Attendance, Reports, Configuration, Data Management) each
-have an icon and open to show their pages:
-
-* click an item or its arrow to open or close it; click the **BABY CARE** title to fold the group;
-* open items and the folded state are remembered per browser; the item holding the current page
-  opens automatically and the page is highlighted;
-* hidden while you edit workspaces, and re-attached whenever Frappe rebuilds the sidebar.
 
 ### Nested sidebar menu
 
@@ -168,8 +167,9 @@ Parent App** button). See *Parent mobile app* below.
 
 ## Parent mobile app
 
-A React Native / **Expo SDK 58** app for parents ships in the separate `babycare-parent` project
-(see its README for building it). It uses the Parent API above.
+The **BabyCare** parent app (React Native / **Expo SDK 58**, JavaScript) ships in the separate
+`babycare` project (see its README). It uses the Parent API above and sends its language in the
+`X-BabyCare-Lang` header (`fr`, `en`, `ar`), so feed texts and messages come back in that language.
 
 **Logins are managed on the Parent Profile**, **Parent App** tab (one login per parent):
 

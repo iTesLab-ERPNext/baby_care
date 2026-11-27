@@ -83,30 +83,12 @@
 .bc-side .bc-nav-link:hover { color: var(--text-color); }
 .bc-side .bc-nav-link.active { background: var(--sidebar-select-color, var(--subtle-fg)); color: var(--text-color); font-weight: 600; }
 .bc-side .bc-nav-kind { display: none; }
-.bc-side-toggle, .bc-main-toggle {
+.bc-side-toggle {
 	display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px;
 	border-radius: var(--border-radius, 6px); color: var(--text-muted);
 }
-.bc-side-toggle:hover, .bc-main-toggle:hover { background: var(--fg-hover-color); color: var(--text-color); }
-.bc-side-toggle:focus-visible, .bc-main-toggle:focus-visible { outline: 2px solid var(--primary); }
-.bc-side-toggle .icon, .bc-main-toggle .icon { transition: transform .15s ease; }
-.bc-side-toggle[aria-expanded="false"] .icon, .bc-main-toggle[aria-expanded="false"] .icon { transform: rotate(-90deg); }
-@media (prefers-reduced-motion: reduce) { .bc-side-toggle .icon, .bc-main-toggle .icon { transition: none; } }
-
-/* ── top-level "Baby Care" group in the main sidebar ──────────────────── */
-.bc-main { margin-bottom: 6px; }
-.bc-main.bc-main-collapsed .bc-main-items { display: none; }
-.bc-main-item > .bc-main-children { display: none; }
-.bc-main-item.expanded > .bc-main-children { display: block; }
-.bc-main-item .sidebar-item-control { display: flex; align-items: center; }
-.bc-main-leaf .standard-sidebar-item { padding-top: 1px; padding-bottom: 1px; min-height: 0; }
-.bc-main-leaf .item-anchor { padding-top: 4px; padding-bottom: 4px; }
-.bc-main-leaf .sidebar-item-label {
-	font-size: var(--text-sm, 13px); color: var(--text-muted);
-	white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-}
-.bc-main-leaf .standard-sidebar-item:hover .sidebar-item-label,
-.bc-main-leaf .standard-sidebar-item.selected .sidebar-item-label { color: var(--text-color); }
-.bc-main-leaf .standard-sidebar-item.selected .sidebar-item-label { font-weight: 600; }
-/* workspace edit mode (Frappe adds .show-hidden-workspaces to the sidebar): hide ours */
-.desk-sidebar.show-hidden-workspaces > .bc-main, .bc-main.show-control { display: none !important; }
+.bc-side-toggle:hover { background: var(--fg-hover-color); color: var(--text-color); }
+.bc-side-toggle:focus-visible { outline: 2px solid var(--primary); }
+.bc-side-toggle .icon { transition: transform .15s ease; }
+.bc-side-toggle[aria-expanded="false"] .icon { transform: rotate(-90deg); }
+@media (prefers-reduced-motion: reduce) { .bc-side-toggle .icon { transition: none; } }

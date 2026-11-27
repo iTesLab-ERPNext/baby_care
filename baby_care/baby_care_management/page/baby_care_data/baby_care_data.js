@@ -24,11 +24,23 @@ frappe.pages["baby-care-data"].on_page_load = function (wrapper) {
 
 	const actions = [
 		[__("Install Seed Data"), "btn-primary", () => run("install_seed_data")],
-		[__("Install Test Data"), "btn-default", () => run("install_test_data", __("Create demo parents, children, teachers, attendance and subscriptions (tagged [TEST])?"))],
+		[__("Install Test Data"), "btn-default", () => run("install_test_data", __("Create demo parents (with mobile app logins), children, teachers, attendance, health, meals, subscriptions, invoices and payments (tagged [TEST])?"))],
 		[__("Refresh Data Status"), "btn-default", () => refresh()],
 		[__("Clear Test Data"), "btn-danger", () => run("clear_test_data", __("Delete every tracked demo record, cancelling demo invoices and subscriptions first?"))],
 	];
 	actions.forEach(([label, cls, fn]) => $(`<button class="btn btn-sm ${cls}">${label}</button>`).on("click", fn).appendTo($body.find(".bc-actions")));
+
+	const esc = frappe.utils.escape_html;
+	const logins = (list) =>
+		!list || !list.length
+			? ""
+			: `<h5 class="mt-4">${__("Demo parent logins (mobile app)")}</h5>
+				<p class="text-muted small">${__("Server address in the app: {0}", [esc(window.location.origin)])}</p>
+				<table class="table table-bordered" style="max-width:640px">
+					<thead><tr><th>${__("Parent")}</th><th>${__("Login")}</th><th>${__("Password")}</th><th>${__("Children")}</th></tr></thead>
+					<tbody>${list.map((l) => `<tr><td>${esc(l.parent)}</td><td><code>${esc(l.login)}</code></td><td><code>${esc(l.password)}</code></td><td>${esc(l.children.join(", "))}</td></tr>`).join("")}</tbody>
+				</table>
+				<p class="text-muted small">${__("Clear Test Data removes these logins.")}</p>`;
 
 	const refresh = () =>
 		frappe.call(api + "get_status").then((r) => {
@@ -41,7 +53,8 @@ frappe.pages["baby-care-data"].on_page_load = function (wrapper) {
 				<table class="table table-bordered" style="max-width:640px">
 					<thead><tr><th>${__("Record type")}</th><th class="text-right">${__("Total")}</th><th class="text-right">${__("Test records")}</th></tr></thead>
 					<tbody>${rows}</tbody>
-				</table>`);
+				</table>
+				${logins(s.logins)}`);
 		});
 	refresh();
 };

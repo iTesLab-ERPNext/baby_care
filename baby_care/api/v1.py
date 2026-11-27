@@ -36,7 +36,21 @@ DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sun
 
 
 # ── helpers ──────────────────────────────────────────────────────────────────
+APP_LANGUAGES = ("fr", "en", "ar")
+
+
+def _apply_app_language():
+    """Answer in the language the mobile app is using (header X-BabyCare-Lang)."""
+    try:
+        lang = (frappe.get_request_header("X-BabyCare-Lang") or "").strip().lower()[:2]
+    except Exception:  # not in a request (tests, console)
+        return
+    if lang in APP_LANGUAGES and frappe.local.lang != lang:
+        frappe.local.lang = lang
+
+
 def _require_login():
+    _apply_app_language()
     if frappe.session.user == "Guest":
         frappe.throw(_("Please log in."), frappe.AuthenticationError)
 
@@ -519,6 +533,7 @@ def _api_token(user, rotate=False):
 @rate_limit(limit=10, seconds=5 * 60)
 def app_login(usr=None, pwd=None, device_name=None):
     """Mobile login: returns a long-lived token instead of a browser session."""
+    _apply_app_language()
     if not usr or not pwd:
         frappe.throw(_("Both 'usr' and 'pwd' are required."), frappe.ValidationError)
     lm = _login_manager()
@@ -577,6 +592,7 @@ def change_password(old_password=None, new_password=None):
 @frappe.whitelist(allow_guest=True, methods=["GET"])
 def app_info():
     """Public facts the app shows before login (name, logo, currency)."""
+    _apply_app_language()
     s = frappe.get_cached_doc("Nursery Settings")
     return {
         "name": s.get("parent_app_name") or s.get("facility_name") or _("Baby Care"),

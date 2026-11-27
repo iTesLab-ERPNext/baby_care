@@ -128,13 +128,30 @@ class TestBilling(BabyCareTestBase):
         self.assertEqual(inv.status, "Paid")
         self.assertEqual(flt(inv.outstanding_amount), 0)
 
+    def test_demo_data_covers_every_doctype_and_logins(self):
+        from baby_care.baby_care_management.api.seed import DEMO_PASSWORD, demo_logins
+        from frappe.utils.password import check_password
+
+        for dt in frappe.get_all("DocType", {"module": "Baby Care Management", "istable": 0, "issingle": 0}, pluck="name"):
+            if dt != "Parent App Device":  # filled by phones
+                self.assertTrue(frappe.db.count(dt), f"no demo record for {dt}")
+        statuses = set(frappe.get_all("Nursery Invoice", {"docstatus": 1}, pluck="status"))
+        self.assertTrue({"Paid", "Partly Paid", "Unpaid", "Overdue"} <= statuses, statuses)
+        logins = {l["login"]: l for l in demo_logins()}
+        self.assertEqual(set(logins), {"sara@babycare.demo", "karim@babycare.demo", "amira@babycare.demo"})
+        self.assertEqual(sorted(logins["sara@babycare.demo"]["children"]), ["Adam", "Lina"])
+        self.assertEqual(check_password("amira@babycare.demo", DEMO_PASSWORD), "amira@babycare.demo")
+
     def test_partial_payment_then_full(self):
-        inv = self._inv("Omar")
-        half = flt(inv.grand_total / 2, 2)
-        p1 = self._pay(inv.parent_profile, half, [{"invoice": inv.name, "allocated_amount": half}])
+        inv = self._inv("Omar")  # the demo data already paid half of it
+        start = flt(inv.outstanding_amount)
+        start_status = inv.status
+        self.assertGreater(start, 0)
+        part = flt(start / 2, 2)
+        p1 = self._pay(inv.parent_profile, part, [{"invoice": inv.name, "allocated_amount": part}])
         inv.reload()
         self.assertEqual(inv.status, "Partly Paid")
-        self.assertAlmostEqual(flt(inv.outstanding_amount), flt(inv.grand_total) - half, places=2)
+        self.assertAlmostEqual(flt(inv.outstanding_amount), start - part, places=2)
         self.assertEqual(frappe.db.get_value("Child Subscription Invoice", {"invoice": inv.name}, "status"), "Partly Paid")
         with self.assertRaises(frappe.ValidationError):  # more than what is left
             self._pay(inv.parent_profile, inv.grand_total, [{"invoice": inv.name, "allocated_amount": inv.grand_total}])
@@ -146,22 +163,25 @@ class TestBilling(BabyCareTestBase):
         p2.cancel()
         p1.cancel()
         inv.reload()
-        self.assertEqual(inv.status, "Unpaid")
-        self.assertAlmostEqual(flt(inv.outstanding_amount), flt(inv.grand_total), places=2)
+        self.assertEqual(inv.status, start_status)
+        self.assertAlmostEqual(flt(inv.outstanding_amount), start, places=2)
 
     def test_auto_allocation_oldest_first_and_credit(self):
+        from baby_care.baby_care_management.utils.billing import open_invoices, parent_credit
+
         yasmine, rayan = self._inv("Yasmine"), self._inv("Rayan")
         parent = yasmine.parent_profile
         self.assertEqual(parent, rayan.parent_profile)
         frappe.db.set_value("Nursery Invoice", rayan.name, "due_date", add_days(yasmine.due_date, -1))
-        total = flt(yasmine.grand_total) + flt(rayan.grand_total)
+        expected = [i.name for i in open_invoices(parent)]  # oldest due date first (the overdue one leads)
+        self.assertLess(expected.index(rayan.name), expected.index(yasmine.name))
+        total = sum(flt(i.outstanding_amount) for i in open_invoices(parent))
+        credit_before = parent_credit(parent)
         pay = self._pay(parent, total + 25, submit=False)
-        self.assertEqual([r.invoice for r in pay.allocations], [rayan.name, yasmine.name], "oldest due date first")
+        self.assertEqual([r.invoice for r in pay.allocations], expected)
         self.assertAlmostEqual(flt(pay.unallocated_amount), 25, places=2)
         pay.submit()
-        from baby_care.baby_care_management.utils.billing import parent_credit
-
-        self.assertAlmostEqual(parent_credit(parent), 25, places=2)
+        self.assertAlmostEqual(parent_credit(parent) - credit_before, 25, places=2)
         self.assertEqual(frappe.db.get_value("Nursery Invoice", yasmine.name, "status"), "Paid")
         pay.cancel()
         self.assertEqual(frappe.db.get_value("Nursery Invoice", rayan.name, "status"), "Unpaid")
@@ -412,7 +432,9 @@ class TestParentAPI(BabyCareTestBase):
 
         frappe.set_user("Administrator")
         cls.sara = frappe.db.get_value("Parent Profile", {"first_name": "Sara", "last_name": ("like", "%[TEST]")}, "name")
-        cls.parent = create_parent_user(cls.sara, "ut-parent@bc.test", send_welcome_email=0)["user"]
+        # the demo data gives Sara an app login; create_parent_user reuses it (same e-mail)
+        login = frappe.db.get_value("Parent Profile", cls.sara, "user") or "ut-parent@bc.test"
+        cls.parent = create_parent_user(cls.sara, login, send_welcome_email=0)["user"]
         cls.outsider = _user("ut-outsider@bc.test", ["Nursery Teacher"])
 
     def setUp(self):

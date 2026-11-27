@@ -11,7 +11,7 @@ import json
 
 import frappe
 from frappe import _
-from frappe.utils import add_days, add_months, add_years, getdate, today
+from frappe.utils import add_days, add_months, add_years, flt, getdate, today
 
 ADMINS = ("System Manager", "Nursery Administrator")
 REGISTRY_KEY = "baby_care_test_data"
@@ -146,6 +146,28 @@ def _first(doctype, preferred, filters=None):
     return frappe.db.get_value(doctype, filters or {}, "name")
 
 
+# Demo parent logins for the mobile app (created with the test data, removed with it).
+DEMO_PASSWORD = "BabyCare@2026"
+DEMO_PARENTS = (
+    # first, last, relationship, mobile, app login
+    ("Sara", "Ben Ali [TEST]", "Mother", "+21620111111", "sara@babycare.demo"),
+    ("Karim", "Trabelsi [TEST]", "Father", "+21620222222", "karim@babycare.demo"),
+    ("Amira", "Haddad [TEST]", "Mother", "+21620333333", "amira@babycare.demo"),
+    ("Mehdi", "Ben Ali [TEST]", "Father", "+21620444444", None),  # second parent of Adam & Lina, no app login
+)
+
+
+def demo_logins():
+    """App logins of the installed demo parents (for the Data page and the README)."""
+    out = []
+    for first, last, _rel, _phone, login in DEMO_PARENTS:
+        if login and frappe.db.exists("Parent Profile", {"user": login, "app_access": 1}):
+            kids = frappe.get_all("Child Parent Link", filters={"parenttype": "Child", "parent_profile": frappe.db.get_value("Parent Profile", {"user": login}, "name")}, pluck="parent")
+            names = [frappe.db.get_value("Child", k, "first_name") for k in kids]
+            out.append({"parent": f"{first} {last.replace(' [TEST]', '')}", "login": login, "password": DEMO_PASSWORD, "children": sorted(names)})
+    return out
+
+
 @frappe.whitelist()
 def install_test_data():
     _only_admins()
@@ -162,7 +184,7 @@ def install_test_data():
         raise
     _save_registry(track)
     frappe.db.commit()
-    return {"created": len(track)}
+    return {"created": len(track), "logins": demo_logins()}
 
 
 def _placeholder_file(track):
@@ -178,11 +200,22 @@ def _placeholder_file(track):
 
 
 def _build_test_data(track):
+    from baby_care.baby_care_management.utils.parent_access import enable_access
+
     parents = []
-    for first, last, rel, phone in (("Sara", "Ben Ali [TEST]", "Mother", "+21620111111"), ("Karim", "Trabelsi [TEST]", "Father", "+21620222222"),
-                                    ("Amira", "Haddad [TEST]", "Mother", "+21620333333")):
-        parents.append(_insert({"doctype": "Parent Profile", "first_name": first, "last_name": last, "relationship": rel,
-                                "mobile_no": phone, "is_active": 1}, track).name)
+    for first, last, rel, phone, login in DEMO_PARENTS:
+        for u in [login] if login else []:
+            if frappe.db.exists("User", u):  # left over by an earlier demo
+                if frappe.db.get_value("User", u, "user_type") == "System User":
+                    frappe.throw(_("{0} is a staff account; remove it before installing demo data.").format(u))
+                frappe.delete_doc("User", u, ignore_permissions=True, force=True)
+        prof = _insert({"doctype": "Parent Profile", "first_name": first, "last_name": last, "relationship": rel,
+                        "mobile_no": phone, "email": login, "is_active": 1, "city": "Tunis",
+                        "occupation": ("Engineer", "Teacher", "Pharmacist", "Accountant")[len(parents)]}, track)
+        parents.append(prof.name)
+        if login:  # known password, so the mobile app can be tried at once
+            enable_access(prof.name, password=DEMO_PASSWORD, login=login)
+            track.append(["User", login])
     t1 = _insert({"doctype": "Teacher Profile", "full_name": "Leila Mansour [TEST]", "employment_status": "Active", "start_date": add_months(today(), -12), "email": "leila.test@example.com"}, track)
     t2 = _insert({"doctype": "Teacher Profile", "full_name": "Youssef Gharbi [TEST]", "employment_status": "Active", "start_date": add_months(today(), -6), "email": "youssef.test@example.com"}, track)
     c1 = _insert({"doctype": "Nursery Class", "class_name": "Butterflies [TEST]", "age_group": "Toddlers", "capacity": 12, "status": "Active",
@@ -202,7 +235,8 @@ def _build_test_data(track):
         child = _insert({
             "doctype": "Child", "first_name": first, "last_name": f"{last} [TEST]", "date_of_birth": dob, "gender": gender,
             "enrollment_status": "Active", "registration_date": add_months(today(), -3), "nursery_class": cls, "assigned_teacher": teacher,
-            "parents": [{"parent_profile": parents[p_idx], "relationship": "Mother" if p_idx != 1 else "Father", "is_primary": 1, "can_pickup": 1}],
+            "parents": [{"parent_profile": parents[p_idx], "relationship": "Mother" if p_idx != 1 else "Father", "is_primary": 1, "can_pickup": 1}]
+            + ([{"parent_profile": parents[3], "relationship": "Father", "is_primary": 0, "can_pickup": 1}] if p_idx == 0 else []),
             "emergency_contacts": [{"full_name": "Emergency Contact", "relationship": "Grandparent", "phone": "+21620000000"}],
             "authorized_pickups": [{"full_name": "Grandma [TEST]", "relationship": "Grandmother", "phone": "+21620000001"}],
         }, track)
@@ -245,6 +279,24 @@ def _build_test_data(track):
         plan = "Allergy-Free Week" if child.first_name == "Omar" else "Standard Week"
         _insert({"doctype": "Child Meal Plan", "child": child.name, "meal_plan": plan, "start_date": add_months(today(), -1), "is_active": 1}, track)
 
+    # health incidents
+    now = frappe.utils.now_datetime()
+    for child, days, sev, kind, desc, action in (
+        (children[0], 2, "Minor", "Injury", "Small scrape on the knee in the playground.", "Cleaned and bandaged."),
+        (children[2], 5, "Moderate", "Allergic Reaction", "Mild rash after snack (checked: no gluten served).", "Antihistamine given as per medical record; parent called."),
+        (children[3], 1, "Minor", "Illness", "Slight fever (37.9°C) after nap.", "Rest and water; temperature checked every hour."),
+    ):
+        _insert({"doctype": "Health Incident", "child": child.name, "incident_datetime": frappe.utils.add_to_date(now, days=-days, hours=-2),
+                 "severity": sev, "incident_type": kind, "description": desc, "action_taken": action,
+                 "notified_parent": 1, "parent_notified_at": frappe.utils.add_to_date(now, days=-days, hours=-1)}, track)
+
+    # child-specific services
+    for child, service in ((children[0], "Lunch Service"), (children[3], "Lunch Service"), (children[1], "Music Workshop"),
+                           (children[4], "Extended Hours (until 18:00)")):
+        if frappe.db.exists("Nursery Service", service):
+            _insert({"doctype": "Child Service Assignment", "child": child.name, "service": service,
+                     "start_date": add_months(today(), -1), "status": "Active"}, track)
+
     _insert({"doctype": "Child Transportation", "child": children[1].name, "route": "North Route", "pickup_stop": "City Centre",
              "dropoff_stop": "City Centre", "direction": "Both", "start_date": add_months(today(), -1), "is_active": 1}, track)
 
@@ -268,13 +320,28 @@ def _build_test_data(track):
         inv = create_subscription_invoice(row[1], submit=1)
         track.append(["Nursery Invoice", inv])
         invoices.append(inv)
-    first = frappe.get_doc("Nursery Invoice", invoices[0])
-    pay = frappe.get_doc({"doctype": "Nursery Payment", "parent_profile": first.parent_profile, "amount": first.grand_total,
-                          "currency": first.currency, "mode_of_payment": "Cash", "payment_date": today(),
-                          "allocations": [{"invoice": first.name, "allocated_amount": first.grand_total}]})
-    pay.insert(ignore_permissions=True)
-    pay.submit()
-    track.append([pay.doctype, pay.name])
+    def pay(invoice, amount, mode, ref=None):
+        inv = frappe.get_doc("Nursery Invoice", invoice)
+        p = frappe.get_doc({"doctype": "Nursery Payment", "parent_profile": inv.parent_profile, "amount": amount,
+                            "currency": inv.currency, "mode_of_payment": mode, "payment_date": today(), "reference_no": ref,
+                            "allocations": [{"invoice": inv.name, "allocated_amount": amount}]})
+        p.insert(ignore_permissions=True)
+        p.submit()
+        track.append([p.doctype, p.name])
+
+    first = frappe.get_doc("Nursery Invoice", invoices[0])            # Adam: paid in full
+    pay(first.name, first.grand_total, "Cash")
+    omar = frappe.get_doc("Nursery Invoice", invoices[2])             # Omar: partly paid
+    pay(omar.name, flt(omar.grand_total / 2, 2), "Bank Transfer", "VIR-2026-0042")
+
+    # an older one-off invoice that is now overdue (Amira's family)
+    late = frappe.get_doc({"doctype": "Nursery Invoice", "parent_profile": parents[2], "child": children[3].name,
+                           "posting_date": add_days(today(), -45), "due_date": add_days(today(), -15),
+                           "items": [{"description": "Registration fee — Yasmine", "qty": 1, "rate": 150},
+                                     {"description": "School photo pack", "qty": 1, "rate": 35}]})
+    late.insert(ignore_permissions=True)
+    late.submit()
+    track.append([late.doctype, late.name])
 
 
 @frappe.whitelist()
@@ -301,6 +368,8 @@ def _clear_tracked():
                     pe_doc.flags.ignore_links = True
                     pe_doc.cancel()
                 frappe.delete_doc("Nursery Payment", pe, ignore_permissions=True, force=True)
+        if doctype == "User":
+            frappe.db.delete("Parent App Device", {"user": name})
         doc = frappe.get_doc(doctype, name)
         if doc.docstatus == 1:
             doc.flags.ignore_permissions = True
@@ -319,10 +388,11 @@ def _clear_tracked():
 def get_status():
     _only_admins()
     counts = {}
-    for dt in ("Parent Profile", "Child", "Teacher Profile", "Nursery Class", "Child Subscription", "Child Attendance", "Medical Record", "Nursery Invoice", "Nursery Payment",
+    for dt in ("Parent Profile", "Child", "Teacher Profile", "Nursery Class", "Child Subscription", "Child Attendance", "Medical Record", "Health Incident",
+               "Child Document", "Child Meal Plan", "Child Service Assignment", "Child Transportation", "Nursery Invoice", "Nursery Payment",
                "Subscription Plan", "Nursery Service", "Meal Plan", "Transportation Route", "Age Group", "Attendance Status", "Document Type Config"):
         counts[dt] = frappe.db.count(dt)
     test = {}
     for dt, _name in _registry():
         test[dt] = test.get(dt, 0) + 1
-    return {"counts": counts, "test_data": test, "test_installed": bool(test)}
+    return {"counts": counts, "test_data": test, "test_installed": bool(test), "logins": demo_logins()}
